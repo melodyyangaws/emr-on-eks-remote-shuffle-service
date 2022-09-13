@@ -1,0 +1,37 @@
+replicas: 5
+
+image:
+  repository: ghcr.io/datapunchorg/remoteshuffleservice
+  tag: k8s-spark-3.2
+
+nodeSelector:
+    app: rss1
+resources:
+  requests:
+    memory: "10G"
+    cpu: "1000m"
+  limits:
+    memory: "12G"
+    cpu: "1200m"
+    
+securityContext:
+    # configure the shuffle service volume owner as Hadoop user (EMR on EKS is 999, OSS Spark is 1000)
+    runAsUser: 999
+    runAsGroup: 1000
+volumeMounts:
+  - name: local-dir-1
+    mountPath: /rss1
+volumes:
+  - name: local-dir-1
+    hostPath:
+      path: /local1
+
+command:
+  jvmHeapSizeOption: "-Xmx800M"
+  # point to a nmve SSD volume as the shuffle data storage, not use root volume.
+  # only support a single disk by the RSS so far
+  rootdir: "/rss1"
+
+ports:
+  shuffleServer: 9338
+  healthcheck: 8080
