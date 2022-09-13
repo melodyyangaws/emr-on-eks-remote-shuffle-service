@@ -28,17 +28,18 @@ cd emr-on-eks-remote-shuffle-service.git
 helm install remote-shuffle-service charts/remote-shuffle-service --namespace remote-shuffle-service --create-namespace
 ```
 
-### Run  Spark benchmark With RSS client
+### Run Spark benchmark With RSS client
 
-Build a custom EMR on EKS docker image including the benchmark utility tool and Remote Shuffle Service client jar
+#### Build a custom docker image including the benchmark utility tool and Remote Shuffle Service client jar
 
+Login to ECR in your account and create a repository called `rss-spark-benchmark`:
 ```sh
-# Login to ECR
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
 aws ecr create-repository --repository-name rss-spark-benchmark --image-scanning-configuration scanOnPush=true
 ```
+
 Build EMR om EKS image:
 ```sh
 export SRC_ECR_URL=755674844232.dkr.ecr.us-east-1.amazonaws.com
@@ -48,16 +49,14 @@ docker pull $SRC_ECR_URL/spark/emr-6.8.0:latest
 docker build -t $ECR_URL/rss-spark-benchmark:emr6.8 -f docker/emr-jdk8/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.8.0:latest .
 ```
 
-Build an OSS Spark docker image that include the Remote Shuffle Service client and Spark benchmark utility tool
+Build an OSS Spark docker image:
 ```sh
 docker build -t $ECR_URL/rss-spark-benchmark:3.3.0 -f docker/oss-jdk11/Dockerfile --build-arg SPARK_BASE_IMAGE=public.ecr.aws/a0x7p3j1/spark:3.3.0 .
 ```
 
-
-
 Add configure to your Spark application like following, keep string like `rss-%s` inside value for `spark.shuffle.rss.serverSequence.connectionString`, since `RssShuffleManager` will use that to format connection string for different RSS server instances:
 
-```
+```sh
 "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
 "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
 "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338",
@@ -71,7 +70,7 @@ Add configure to your Spark application like following, keep string like `rss-%s
 "spark.dynamicAllocation.shuffleTracking.timeout": "1"
 ```
 
-Now you can run your application in your own Spark Kubernetes environment. Please note the value for 
+Now you can run your Spark application in a Spark Kubernetes environment. Please note the value for 
 "spark.shuffle.rss.serverSequence.connectionString" contains string like "rss-%s". This is intended because 
 RssShuffleManager will use it to generate actual connection string like rss-0.xxx and rss-1.xxx.
 
@@ -79,4 +78,14 @@ If you do not have your own environment to run Spark, run the command:
 ```
 ./eks_provision.sh
 ```
-which provides a one-click tool to create a EMR on EKS environment with RSS server running on Amazon EKS.
+which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster.
+
+#### Run EMR on EKS Spark benchmark test:
+```bash
+./example/emr6.8-benchmark-c5.sh
+````
+
+#### Run OSS Spark benchmark:
+```bash
+kubectl apply -f tpcds-benchmark.yaml
+```
