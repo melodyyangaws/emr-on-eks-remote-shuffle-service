@@ -5,7 +5,7 @@ image:
   tag: k8s-spark-3.2
 
 nodeSelector:
-    app: rss1
+    app: rss
 resources:
   requests:
     memory: "10G"
@@ -13,16 +13,18 @@ resources:
   limits:
     memory: "12G"
     cpu: "1200m"
-    
+
 securityContext:
-    # configure the shuffle service volume owner as Hadoop user (EMR on EKS is 999, OSS Spark is 1000)
-    runAsUser: 999
-    runAsGroup: 1000
+  runAsGroup: 0
+  runAsUser: 0
+# configure the shuffle service volume owner as Hadoop user (EMR on EKS is 999:1000, OSS Spark is 1000:1000)
+volumeUser: 999
+volumeGroup: 1000
 volumeMounts:
-  - name: local-dir-1
+  - name: spark-local-dir-1
     mountPath: /rss1
 volumes:
-  - name: local-dir-1
+  - name: spark-local-dir-1
     hostPath:
       path: /local1
 

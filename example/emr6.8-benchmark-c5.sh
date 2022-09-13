@@ -7,10 +7,12 @@
 
 
 export EMRCLUSTER_NAME=my-ack-vc
+# export EMRCLUSTER_NAME=emr-on-eks-nvme
 export AWS_REGION=us-east-1
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export VIRTUAL_CLUSTER_ID=$(aws emr-containers list-virtual-clusters --query "virtualClusters[?name == '$EMRCLUSTER_NAME' && state == 'RUNNING'].id" --output text)
 export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
+# export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
 export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
 export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
@@ -18,7 +20,7 @@ aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
   --name em66-jdk8-rss-fulltest \
   --execution-role-arn $EMR_ROLE_ARN \
-  --release-label emr-6.6.0-latest \
+  --release-label emr-6.8.0-latest \
   --job-driver '{
   "sparkSubmitJobDriver": {
       "entryPoint": "local:///usr/lib/spark/examples/jars/eks-spark-benchmark-assembly-1.0.jar",
@@ -29,31 +31,16 @@ aws emr-containers start-job-run \
       {
         "classification": "spark-defaults", 
         "properties": {
-          "spark.kubernetes.container.image": "'$ECR_URL'/rss:emr6.6-jdk8-benchmark",
+          "spark.kubernetes.container.image": "'$ECR_URL'/rss-spark-benchmark:emr6.8,
           
           "spark.kubernetes.driver.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/driver-pod-template.yaml",
           "spark.kubernetes.executor.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/executor-pod-template.yaml",
      
-
           "spark.executor.memoryOverhead": "2G",
           "spark.network.timeout": "2000s",
           "spark.executor.heartbeatInterval": "300s",
           "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds-c59d",
           "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59d",
-
-
-          "spark.ui.prometheus.enabled":"true",
-          "spark.executor.processTreeMetrics.enabled":"true",
-          "spark.kubernetes.driver.annotation.prometheus.io/scrape":"true",
-          "spark.kubernetes.driver.annotation.prometheus.io/path":"/metrics/executors/prometheus/",
-          "spark.kubernetes.driver.annotation.prometheus.io/port":"4040",
-          "spark.kubernetes.driver.service.annotation.prometheus.io/scrape":"true",
-          "spark.kubernetes.driver.service.annotation.prometheus.io/path":"/metrics/driver/prometheus/",
-          "spark.kubernetes.driver.service.annotation.prometheus.io/port":"4040",
-          "spark.metrics.conf.*.sink.prometheusServlet.class":"org.apache.spark.metrics.sink.PrometheusServlet",
-          "spark.metrics.conf.*.sink.prometheusServlet.path":"/metrics/driver/prometheus/",
-          "spark.metrics.conf.master.sink.prometheusServlet.path":"/metrics/master/prometheus/",
-          "spark.metrics.conf.applications.sink.prometheusServlet.path":"/metrics/applications/prometheus/",
 
           "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
           "spark.shuffle.rss.serviceRegistry.type": "serverSequence",

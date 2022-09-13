@@ -89,12 +89,12 @@ iam:
       autoScaler: true
     roleName: eksctl-cluster-autoscaler-role
 managedNodeGroups: 
-  - name: mn-c5d4
+  - name: rss-c5d4
     availabilityZones: ["${AWS_REGION}b"] 
     preBootstrapCommands:
-      - "sudo mkfs.xfs /dev/nvme1n1;sudo mkdir -p /local1;sudo echo /dev/nvme1n1 /local1 xfs defaults,noatime 1 2 >> /etc/fstab"
+      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs ${DEV}; sudo mkdir -p /local${IDX}; sudo echo ${DEV} /local${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=$((${IDX} + 1)); done"
       - "sudo mount -a"
-      - "sudo chown ec2-user:ec2-user /local1"
+      - "sudo chown ec2-user:ec2-user /local*"
     instanceType: c5d.4xlarge
     volumeSize: 20
     volumeType: gp3
@@ -107,6 +107,25 @@ managedNodeGroups:
       # required for cluster-autoscaler auto-discovery
       k8s.io/cluster-autoscaler/enabled: "true"
       k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"  
+
+  - name: mn-od
+    availabilityZones: ["${AWS_REGION}a"] 
+    preBootstrapCommands:
+      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs ${DEV}; sudo mkdir -p /local${IDX}; sudo echo ${DEV} /local${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=$((${IDX} + 1)); done"
+      - "sudo mount -a"
+      - "sudo chown ec2-user:ec2-user /local*"
+    instanceType: c5d.9xlarge
+    # ebs optimization is enabled by default
+    volumeSize: 20
+    volumeType: gp3
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 50
+    labels:
+      app: sparktest 
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned" 
 
 # enable all of the control plane logs
 cloudWatch:

@@ -17,25 +17,21 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: rss
-  labels:
-    app: rss
+  labels: {{- .Values.nodeSelector | toYaml | nindent 4 }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
-    matchLabels:
-      app: rss
+    matchLabels: {{- .Values.nodeSelector | toYaml | nindent 6 }}
   serviceName: rss
   template:
     metadata:
-      labels:
-        app: rss
+      labels: {{- .Values.nodeSelector | toYaml | nindent 8 }}
     spec:  
     {{- if .Values.securityContext }}
       securityContext:
-        # set shuffle root directory owner
         runAsUser: {{ .Values.securityContext.runAsUser }}
         runAsGroup: {{ .Values.securityContext.runAsGroup }}   
-    # {{- end}} 
+    {{- end}} 
     {{- if .Values.volumes }}
       volumes:
     {{- range $volumes := .Values.volumes }}
@@ -47,6 +43,21 @@ spec:
 {{- if .Values.nodeSelector }}
       nodeSelector: {{- .Values.nodeSelector | toYaml | nindent 8 }}
 {{- end }}
+{{- if .Values.volumeMounts }}
+{{- $userId := .Values.volumeUser -}}
+{{- $userGroup := .Values.volumeGroup -}}
+{{- range $volumeMounts := .Values.volumeMounts }}
+      initContainers:  
+      - name: volume-permission
+        image: public.ecr.aws/y4g4v0z7/busybox
+        imagePullPolicy: IfNotPresent
+        # grant volume access to hadoop user  
+        command: ['sh', '-c', 'mkdir {{ $volumeMounts.mountPath }};chown -R {{ $userId}}:{{ $userGroup }} {{ $volumeMounts.mountPath }}']  
+        volumeMounts:
+        - name: {{ $volumeMounts.name }}
+          mountPath: {{ $volumeMounts.mountPath }}
+  {{- end }} 
+  {{- end }}   
       containers:
         - name: rss
     {{- if .Values.volumeMounts }}
