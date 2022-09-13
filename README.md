@@ -11,12 +11,12 @@ The high level design for Remote Shuffle Service could be found [here](https://g
 
 ### Deploy RSS server to EKS using Helm
 
-In [charts/remote-shuffle-service/values.yaml](./values.yaml), the following node selector was set. 
+In [charts/remote-shuffle-service/values.yaml](./charts/remote-shuffle-service/values.yaml), the following node selector was set. 
 ```yaml
 nodeSelector:
     app: rss
 ```    
-It means the RSS Server will be installed on EC2 instances(nodes) that have the label of `app=rss`. By doing this, we can assign RSS service to a sepcific 'D' series type of instances with a build-in SSD disk, [`c5d.4xlarge`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/10c17b35cc37d4984d6c562c19666aa31e32b3b4/eks_provision.sh#L98) in this case. Change the label name based on your EKS setup or simply remove these two lines to run RSS on any instances.
+It means the RSS Server will be installed on EC2 instances(nodes) that have the label of `app=rss`. By doing this, we can assign RSS service to a sepcific instance type with SSD disk mounted, [`c5d.4xlarge`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/10c17b35cc37d4984d6c562c19666aa31e32b3b4/eks_provision.sh#L98) in this case. Change the label name based on your EKS setup or simply remove these two lines to run RSS on any instances.
 
 
 Run following command under root directory of this project:
@@ -78,9 +78,9 @@ If you do not have your own environment to run Spark, run the command:
 ```
 ./eks_provision.sh
 ```
-which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The provision creates an EKS cluster with two node groups:
+which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains two managed nodegroups:
 1 - [`rss-c5d4`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L92) that scales c5d.4clarge instances from 1 to 30. They are labelled as `app=rss` to host the RSS server specifically.
-2 - ['mn-od'](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instance from 1 to 50. They are labelled as `app=sparktest` that can host both EMR on EKS and OSS Spark testings.
+2 - ['mn-od'](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings.
 
 #### Run EMR on EKS Spark benchmark test:
 ```bash
