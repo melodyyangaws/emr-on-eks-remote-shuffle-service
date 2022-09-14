@@ -33,15 +33,19 @@ nodeSelector:
 In [charts/remote-shuffle-service/values.yaml](./values.yaml), you can see the following securityContext is configurable. 
 ```
 securityContext:
-    runAsUser: 1000
-    runAsGroup: 1000
+  runAsGroup: 0
+  runAsUser: 0
+
+# configure the shuffle service volume owner as Hadoop user (EMR on EKS is 999:1000, OSS Spark is 1000:1000)
+volumeUser: 999
+volumeGroup: 1000
 ```
 
-We run the shuffle service under a Hadoop user as a volume owner who creates folders and write files on the volume. Be aware of that Hadoop User ID in EMR on EKS is `999` but OSS Spark is `1000`.
+We run the shuffle service under a Hadoop user, however as a root user who needs to create a folder for the volume user `Hadoop user` first. Be aware of that Hadoop User ID in EMR on EKS is `999` but OSS Spark is `1000`.
 
 ### autoscaling
 
-the RSS Server is a statefulset, which can be scale from 1 to N number of pods based on your setting in the [values.yaml](./values.yaml) file. In this repo, we set replicas to 5 instances, with the name of rss-[index number] from 0 to 4. For example: `rss-0`
+the RSS Server is a statefulset, which provides the high availability feataure with autoscaling. It can scale from 1 to N number of pods based on your replicas setting in the [values.yaml](./values.yaml) file. In this repo, we set replicas to 5 instances, with the name of rss-[index number] from 0 to 4. For example: `rss-0`
 
 ```
 replicas: 5

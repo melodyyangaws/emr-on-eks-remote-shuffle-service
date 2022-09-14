@@ -6,6 +6,14 @@ on remote servers. See more details on Spark community document:
 
 The high level design for Remote Shuffle Service could be found [here](https://github.com/uber/RemoteShuffleService/blob/master/docs/server-high-level-design.md).
 
+## Infra Provision
+If you do not have your own environment to run Spark, run the command:
+```
+./eks_provision.sh
+```
+which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains two managed nodegroups in the same AZ (to avoid the network latency between jobs and RSS):
+- 1 - [`rss-c5d4`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L92) that scales c5d.4clarge instances from 1 to 30. They are labelled as `app=rss` to host the RSS server specifically.
+- 2 - [`mn-od`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings in parallel.
 
 ## Quick Start: Run Spark Application With Pre-Built Images
 
@@ -70,17 +78,14 @@ Add configure to your Spark application like following, keep string like `rss-%s
 "spark.dynamicAllocation.shuffleTracking.timeout": "1"
 ```
 
-Now you can run your Spark application in a Spark Kubernetes environment. Please note the value for 
-"spark.shuffle.rss.serverSequence.connectionString" contains string like "rss-%s". This is intended because 
+Please note the value for "spark.shuffle.rss.serverSequence.connectionString" contains string like "rss-%s". This is intended because 
 RssShuffleManager will use it to generate actual connection string like rss-0.xxx and rss-1.xxx.
 
-If you do not have your own environment to run Spark, run the command:
+`"spark.shuffle.rss.serviceRegistry.type": "serverSequence",` means the metadata will be stored in memory, this is suitable to a quick start testing. For production workloads, it is recommended to use the zookeeper, similar to this Spark config:
+```sh
+"spark.shuffle.rss.serviceRegistry.type": "zookeeper",
+"spark.shuffle.rss.serviceRegistry.zookeeper.servers": "zkServer1:2181"
 ```
-./eks_provision.sh
-```
-which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains two managed nodegroups in a single AZ (to avoid the network latency between jobs and RSS):
-- 1 - [`rss-c5d4`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L92) that scales c5d.4clarge instances from 1 to 30. They are labelled as `app=rss` to host the RSS server specifically.
-- 2 - [`mn-od`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings.
 
 #### Run EMR on EKS Spark benchmark test:
 ```bash
