@@ -118,8 +118,10 @@ RssShuffleManager will use it to generate actual connection string like rss-0.xx
 
 `"spark.shuffle.rss.serviceRegistry.type": "serverSequence",` means the metadata will be stored in memory, this is suitable to a quick start testing. For production workloads, it is recommended to use the zookeeper, similar to this Spark config:
 ```bash
-"spark.shuffle.rss.serviceRegistry.type": "zookeeper",
-"spark.shuffle.rss.serviceRegistry.zookeeper.servers": "zk-zookeeper:2181"
+# "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
+  "spark.shuffle.rss.serviceRegistry.type": "standalone",
+  "spark.shuffle.rss.serviceRegistry.server": "zookeeper:2181",
+
 ```
 
 
