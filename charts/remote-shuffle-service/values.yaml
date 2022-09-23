@@ -1,4 +1,4 @@
-replicas: 5
+replicas: 2
 
 image:
   repository: ghcr.io/datapunchorg/remoteshuffleservice
@@ -8,11 +8,11 @@ nodeSelector:
     app: rss
 resources:
   requests:
-    memory: "10G"
-    cpu: "1000m"
+    memory: "40G"
+    cpu: "5"
   limits:
-    memory: "12G"
-    cpu: "1200m"
+    memory: "45G"
+    cpu: "5.5"
 
 securityContext:
   runAsGroup: 0
@@ -31,8 +31,11 @@ volumes:
 command:
   jvmHeapSizeOption: "-Xmx800M"
   # point to a nmve SSD volume as the shuffle data storage, not use root volume.
-  # only support a single disk by the RSS so far
+  # the RSS only supports a single disk so far. Use storage optmized EC2 instance type.
   rootdir: "/rss1"
+  dataRetentionMillis: "14400000"  # 4 hours
+  nettyAcceptThreads: 4
+  nettyWorkerThreads: 40
 
 ports:
   shuffleServer: 9338

@@ -108,7 +108,7 @@ managedNodeGroups:
       k8s.io/cluster-autoscaler/enabled: "true"
       k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"  
 
-  - name: mn-od
+  - name: c59d
     availabilityZones: ["${AWS_REGION}b"] 
     preBootstrapCommands:
       - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs ${DEV}; sudo mkdir -p /local${IDX}; sudo echo ${DEV} /local${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=$((${IDX} + 1)); done"
@@ -122,11 +122,10 @@ managedNodeGroups:
     desiredCapacity: 1
     maxSize: 50
     labels:
-      app: sparktest 
+      app: sparktest
     tags:
       k8s.io/cluster-autoscaler/enabled: "true"
       k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned" 
-
 # enable all of the control plane logs
 cloudWatch:
  clusterLogging:

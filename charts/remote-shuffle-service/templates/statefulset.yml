@@ -49,7 +49,7 @@ spec:
 {{- range $volumeMounts := .Values.volumeMounts }}
       initContainers:  
       - name: volume-permission
-        image: public.ecr.aws/y4g4v0z7/busybox
+        image: public.ecr.aws/docker/library/busybox
         imagePullPolicy: IfNotPresent
         # grant volume access to hadoop user  
         command: ['sh', '-c', 'mkdir {{ $volumeMounts.mountPath }};chown -R {{ $userId}}:{{ $userGroup }} {{ $volumeMounts.mountPath }}']  
@@ -80,7 +80,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-          command: ["java", "{{ .Values.command.jvmHeapSizeOption }}", "-Dlog4j.configuration=log4j-remote-shuffle-service.properties", "-cp", "remote-shuffle-service-server.jar", "com.uber.rss.StreamServer", "-port", "9338", "-httpPort", "8080","-rootDir","{{ .Values.command.rootdir }}"]
+          command: ["java", "{{ .Values.command.jvmHeapSizeOption }}", "-Dlog4j.configuration=log4j-remote-shuffle-service.properties", "-cp", "remote-shuffle-service-server.jar", "com.uber.rss.StreamServer","-port","{{ .Values.ports.shuffleServer }}", "-httpPort", "{{ .Values.ports.healthcheck }}","-rootDir","{{ .Values.command.rootdir }}","-nettyAcceptThreads","{{ .Values.command.nettyAcceptThreads | default 2 }}","-nettyWorkerThreads","{{ .Values.command.nettyWorkerThreads | default 20 }}","-appFileRetentionMillis","{{ .Values.command.dataRetentionMillis | default 129600000 }}"]
           args: []
           ports:
             - containerPort: {{ .Values.ports.shuffleServer }}
