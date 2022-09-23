@@ -12,10 +12,10 @@ If you do not have your own environment to run Spark, run the command:
 ./eks_provision.sh
 ```
 which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains two managed nodegroups in the same AZ (to avoid the network latency between jobs and RSS):
-- 1 - [`rss-c5d4`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L92) that scales c5d.4clarge instances from 1 to 30. They are labelled as `app=rss` to host the RSS server specifically.
-- 2 - [`c59d`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` for running EMR on EKS and OSS Spark performance tests in parallel.
+- 1 - [`rss-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/de77e588a2c89080e448f75321f4174a51c77799/eks_provision.sh#L92) that scales i3en.3xlarge instances from 1 to 30. They are labelled as `app=rss` to host the RSS server only.
+- 2 - [`c59d`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings in parallel.
 
-## Quick Start: Run Spark Application With Pre-Built Images
+## Quick Start: Run RSS With Pre-Built Images
 
 ### Deploy RSS server to EKS using Helm
 
@@ -30,12 +30,18 @@ helm install remote-shuffle-service charts/remote-shuffle-service -f charts/remo
 
 Before the installation, take a look at the [charts/remote-shuffle-service/values.yaml](./charts/remote-shuffle-service/values.yaml). There are few configs need to pay attention to. 
 
+To scale up or scale down the Shuffle server, run the command:
+```bash
+kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=4
+```
+
+
 #### 1. Node selector was set
 ```yaml
 nodeSelector:
     app: rss
 ```    
-It means the RSS Server will be installed on EC2 instances(nodes) that have the label of `app=rss` on EKS. By doing this, we can assign RSS service to a sepcific instance type with scalable SSD disk mounted, [`c5d.4xlarge`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/10c17b35cc37d4984d6c562c19666aa31e32b3b4/eks_provision.sh#L98) in this case. Change the label name based on your EKS setup or simply remove these two lines to run RSS on any instances.
+It means the RSS Server will be installed on EC2 instances(nodes) that have the label of `app=rss`. By doing this, we can assign RSS service to a sepcific instance type with SSD disk mounted, [`i3en.3xlarge`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/de77e588a2c89080e448f75321f4174a51c77799/eks_provision.sh#L98) in this case. Change the label name based on your EKS setup or simply remove these two lines to run RSS on any instances.
 
 #### 2. Access control to RSS data storage 
 At RSS client (Spark applications), we use `Hadoop` to run jobs. They are also the user to write to the shuffle service disks on the server. For EMR on EKS, you should run the RSS server under 999:1000 permission.
@@ -60,13 +66,13 @@ volumes:
 command:
   jvmHeapSizeOption: "-Xmx800M"
   # point to a nmve SSD volume as the shuffle data storage, not use root volume.
-  # only support a single disk by the RSS so far
+  # the RSS only supports a single disk so far. Use storage optmized EC2 instance type.
   rootdir: "/rss1"
 ```
 
 ### Run Spark benchmark With RSS client
 
-#### Build a custom docker image including the benchmark utility tool and Remote Shuffle Service client jar
+#### Build a custom docker image to include the [Spark benchmark utility](https://github.com/aws-samples/emr-on-eks-benchmark#spark-on-kubernetes-benchmark-utility) tool and Remote Shuffle Service client
 
 Login to ECR in your account and create a repository called `rss-spark-benchmark`:
 ```bash
@@ -80,17 +86,16 @@ Build EMR om EKS image:
 ```bash
 export SRC_ECR_URL=755674844232.dkr.ecr.us-east-1.amazonaws.com
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $SRC_ECR_URL
-docker pull $SRC_ECR_URL/spark/emr-6.7.0:latest
+docker pull $SRC_ECR_URL/spark/emr-6.6.0:latest
 
-docker build -t $ECR_URL/rss-spark-benchmark:emr6.7 -f docker/emr-jdk8/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.7.0:latest .
-docker push $ECR_URL/rss-spark-benchmark:emr6.7
+docker build -t $ECR_URL/rss-spark-benchmark:emr6.6 -f docker/emr-jdk8/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.6.0:latest .
+docker push $ECR_URL/rss-spark-benchmark:emr6.6
 ```
 
 Build an OSS Spark docker image:
 ```bash
-docker build -t $ECR_URL/rss-spark-benchmark:3.2.1 -f docker/oss-jdk11/Dockerfile --build-arg SPARK_BASE_IMAGE=public.ecr.aws/a0x7p3j1/spark:3.2.1 .
+docker build -t $ECR_URL/rss-spark-benchmark:3.2.1 -f docker/oss-jdk8/Dockerfile --build-arg SPARK_BASE_IMAGE=ghcr.io/datapunchorg/spark:spark-3.2.1-1643336295 .
 docker push $ECR_URL/rss-spark-benchmark:3.2.1
-```
 
 Add configure to your Spark application like following, keep string like `rss-%s` inside value for `spark.shuffle.rss.serverSequence.connectionString`, since `RssShuffleManager` will use that to format connection string for different RSS server instances:
 
@@ -99,7 +104,7 @@ Add configure to your Spark application like following, keep string like `rss-%s
 "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
 "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338",
 "spark.shuffle.rss.serverSequence.startIndex": "0",
-"spark.shuffle.rss.serverSequence.endIndex": "4",
+"spark.shuffle.rss.serverSequence.endIndex": "1",
 "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
 "spark.dynamicAllocation.enabled": "true",
 "spark.dynamicAllocation.minExecutors": "1",
@@ -114,23 +119,26 @@ RssShuffleManager will use it to generate actual connection string like rss-0.xx
 `"spark.shuffle.rss.serviceRegistry.type": "serverSequence",` means the metadata will be stored in memory, this is suitable to a quick start testing. For production workloads, it is recommended to use the zookeeper, similar to this Spark config:
 ```bash
 "spark.shuffle.rss.serviceRegistry.type": "zookeeper",
-"spark.shuffle.rss.serviceRegistry.zookeeper.servers": "zkServer1:2181"
+"spark.shuffle.rss.serviceRegistry.zookeeper.servers": "zk-zookeeper:2181"
 ```
 
 
 ### Run Benchmark
 
 #### Generate the TCP-DS source data
+The data will be stored in your S3 bucket created by the [eks_provision.sh](./eks_provision.sh))
 ```bash
 kubectl apply -f examples/tpcds-data-generation.yaml
 ```
 
 #### Run EMR on EKS Spark benchmark test:
+Update the docker image name to your ECR URL, then run
 ```bash
 ./example/emr6.8-benchmark-c5.sh
 ````
 
 #### Run OSS Spark benchmark:
+Update the docker image name to your ECR URL, then run
 ```bash
 kubectl apply -f tpcds-benchmark.yaml
 ```

@@ -20,7 +20,7 @@ echo "==============================================="
 
 # create S3 bucket for application
 if [ $AWS_REGION=="us-east-1" ]; then
-  aws s3api create-bucket --bucket $S3TEST_BUCKET --region $AWS_REGION 
+  aws s3api create-bucket --bucket $S3TEST_BUCKET --region $AWS_REGION
 else
   aws s3api create-bucket --bucket $S3TEST_BUCKET --region $AWS_REGION --create-bucket-configuration LocationConstraint=$AWS_REGION
 fi
@@ -89,13 +89,13 @@ iam:
       autoScaler: true
     roleName: eksctl-cluster-autoscaler-role
 managedNodeGroups: 
-  - name: rss-c5d4
+  - name: rss-i3en
     availabilityZones: ["${AWS_REGION}b"] 
     preBootstrapCommands:
       - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs ${DEV}; sudo mkdir -p /local${IDX}; sudo echo ${DEV} /local${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=$((${IDX} + 1)); done"
       - "sudo mount -a"
       - "sudo chown ec2-user:ec2-user /local*"
-    instanceType: c5d.4xlarge
+    instanceType: i3en.3xlarge
     volumeSize: 20
     volumeType: gp3
     minSize: 1
@@ -160,6 +160,9 @@ aws emr-containers create-virtual-cluster --name $EMRCLUSTER_NAME \
 echo "==============================================="
 echo "  Configure EKS Cluster ......"
 echo "==============================================="
+# Map the s3 bucket environment variable to EKS cluster
+kubectl create -n $OSS_NAMESPACE configmap special-config --from-literal=codeBucket=$S3TEST_BUCKET
+
 # Install k8s metrics server
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 
@@ -196,6 +199,5 @@ helm install nodescaler autoscaler/cluster-autoscaler --namespace kube-system --
 # echo "==========================================================================================="
 curl -o rbac_pactch.py https://raw.githubusercontent.com/aws/aws-emr-containers-best-practices/main/tools/pvc-permission/rbac_patch.py
 python3 rbac_pactch.py -n $EMR_NAMESPACE -p
-
 
 echo "Finished, proceed to submitting a job"
