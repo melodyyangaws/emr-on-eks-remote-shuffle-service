@@ -22,8 +22,7 @@ RUN git clone -b k8s-spark-3.2 --single-branch https://github.com/datapunchorg/R
 WORKDIR /tmp/RemoteShuffleService
 RUN mvn clean package -Pclient -DskipTests -Dmaven.javadoc.skip=true \
     && rm target/original-remote-shuffle-service-*.jar \
-    && rm target/remote-shuffle-service-*-sources.jar \
-    && mv target/remote-shuffle-service-client-*.jar ${SPARK_HOME}/jars/ 
+    && rm target/remote-shuffle-service-*-sources.jar
 
 
 FROM mozilla/sbt:8u292_1.5.4 as sbt
@@ -45,7 +44,7 @@ ARG BASE_URL=https://apache.osuosl.org/maven/maven-3/${MAVEN_VERSION}/binaries
 
 USER root
 
-COPY --from=tpc-toolkit /tmp/RemoteShuffleService/target/remote-shuffle-service-client.jar ${SPARK_HOME}/jars/
+COPY --from=tpc-toolkit /tmp/RemoteShuffleService/target/remote-shuffle-service-client-*.jar ${SPARK_HOME}/jars/remote-shuffle-service-client.jar
 COPY --from=sbt /tmp/emr-on-eks-benchmark/benchmark/target/scala-2.12/*jar ${SPARK_HOME}/examples/jars/
 
 # # upgrade JDK to corretto11, still not compatible with EMR on EKS
