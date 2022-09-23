@@ -12,7 +12,7 @@ If you do not have your own environment to run Spark, run the command:
 ./eks_provision.sh
 ```
 which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains two managed nodegroups in the same AZ (to avoid the network latency between jobs and RSS):
-- 1 - [`rss-c5d4`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L92) that scales c5d.4clarge instances from 1 to 30. They are labelled as `app=rss` to host the RSS server specifically.
+- 1 - [`rss-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L92) that scales i3en.3xlarge instances from 1 to 30. They are labelled as `app=rss` to host the RSS server only.
 - 2 - [`mn-od`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings in parallel.
 
 ## Quick Start: Run Spark Application With Pre-Built Images
@@ -24,7 +24,7 @@ In [charts/remote-shuffle-service/values.yaml](./charts/remote-shuffle-service/v
 nodeSelector:
     app: rss
 ```    
-It means the RSS Server will be installed on EC2 instances(nodes) that have the label of `app=rss`. By doing this, we can assign RSS service to a sepcific instance type with SSD disk mounted, [`c5d.4xlarge`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/10c17b35cc37d4984d6c562c19666aa31e32b3b4/eks_provision.sh#L98) in this case. Change the label name based on your EKS setup or simply remove these two lines to run RSS on any instances.
+It means the RSS Server will be installed on EC2 instances(nodes) that have the label of `app=rss`. By doing this, we can assign RSS service to a sepcific instance type with SSD disk mounted, [`i3en.3xlarge`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/10c17b35cc37d4984d6c562c19666aa31e32b3b4/eks_provision.sh#L98) in this case. Change the label name based on your EKS setup or simply remove these two lines to run RSS on any instances.
 
 
 Run following command under root directory of this project:
@@ -52,9 +52,9 @@ Build EMR om EKS image:
 ```sh
 export SRC_ECR_URL=755674844232.dkr.ecr.us-east-1.amazonaws.com
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $SRC_ECR_URL
-docker pull $SRC_ECR_URL/spark/emr-6.8.0:latest
+docker pull $SRC_ECR_URL/spark/emr-6.6.0:latest
 
-docker build -t $ECR_URL/rss-spark-benchmark:emr6.8 -f docker/emr-jdk8/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.8.0:latest .
+docker build -t $ECR_URL/rss-spark-benchmark:emr6.6 -f docker/emr-jdk8/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.6.0:latest .
 ```
 
 Build an OSS Spark docker image:
