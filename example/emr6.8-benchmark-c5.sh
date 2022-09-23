@@ -2,12 +2,10 @@
 # SPDX-FileCopyrightText: Copyright 2021 Amazon.com, Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
-# "spark.shuffle.registration.timeout": "120000",
-# "spark.shuffle.file.buffer":"128m",
-# "spark.shuffle.service.index.cache.size": "384m",
 # "spark.dynamicAllocation.enabled": "true",
 # "spark.dynamicAllocation.shuffleTracking.enabled": "true",
-# "spark.dynamicAllocation.shuffleTracking.timeout": "1"
+# "spark.dynamicAllocation.shuffleTracking.timeout": "1",
+# "spark.dynamicAllocation.maxExecutors": "55",
 #
 export EMRCLUSTER_NAME=my-ack-vc
 # export EMRCLUSTER_NAME=emr-on-eks-nvme
@@ -21,7 +19,7 @@ export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
-  --name em66-rss-tpcds-c59xl-dra \
+  --name em66-rss-tpcds-dra-v2 \
   --execution-role-arn $EMR_ROLE_ARN \
   --release-label emr-6.6.0-latest \
   --job-driver '{
@@ -34,14 +32,14 @@ aws emr-containers start-job-run \
       {
         "classification": "spark-defaults", 
         "properties": {
-          "spark.kubernetes.container.image": "'$ECR_URL'/rss-spark-benchmark:em6.6",
+          "spark.kubernetes.container.image": "'$ECR_URL'/rss-spark-benchmark:emr6.6-v2",
           "spark.kubernetes.driver.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/driver-pod-template.yaml",
           "spark.kubernetes.executor.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/executor-pod-template.yaml",
      
           "spark.executor.memoryOverhead": "2G",
           "spark.network.timeout": "2000s",
           "spark.executor.heartbeatInterval": "300s",
-          "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds-c59",
+          "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds-dra",
 
           "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
           "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
@@ -49,16 +47,12 @@ aws emr-containers start-job-run \
           "spark.shuffle.rss.serverSequence.startIndex": "0",
           "spark.shuffle.rss.serverSequence.endIndex": "1",
 
-          "spark.shuffle.io.numConnectionsPerPeer": "4",
-          "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
+          "spark.shuffle.io.numConnectionsPerPeer": "8",
+          "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+          "spark.shuffle.file.buffer":"256k",
+          "spark.shuffle.service.index.cache.size": "384m"
 
-      }},
-      {
-        "classification": "spark-log4j", 
-        "properties": {
-          "log4j.rootCategory":"ERROR, console"
-        }
-      }
+      }}
     ],
     "monitoringConfiguration": {
       "s3MonitoringConfiguration": {"logUri": "s3://'$S3BUCKET'/elasticmapreduce/emr-containers"}}}'

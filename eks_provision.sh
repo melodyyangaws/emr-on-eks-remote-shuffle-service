@@ -24,6 +24,9 @@ if [ $AWS_REGION=="us-east-1" ]; then
 else
   aws s3api create-bucket --bucket $S3TEST_BUCKET --region $AWS_REGION --create-bucket-configuration LocationConstraint=$AWS_REGION
 fi
+# update artifact
+aws s3 sync example/ s3://$S3TEST_BUCKET/app_code/
+
 # Create a job execution role (https://docs.aws.amazon.com/emr/latest/EMR-on-EKS-DevelopmentGuide/creating-job-execution-role.html)
 cat >/tmp/job-execution-policy.json <<EOL
 {
