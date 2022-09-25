@@ -1,15 +1,35 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: Copyright 2021 Amazon.com, Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
+#
+# "spark.network.timeout": "2000s",
+# "spark.executor.heartbeatInterval": "300s",
 
-#          "spark.shuffle.service.index.cache.size": "384m"
+# "spark.shuffle.io.numConnectionsPerPeer": "8",
+# "spark.shuffle.file.buffer":"128m",
+# "spark.shuffle.service.index.cache.size": "256m",
+# "spark.executor.heartbeatInterval": "300s",
+
 # "spark.shuffle.rss.serviceRegistry.type": "standalone",
 # "spark.shuffle.rss.serviceRegistry.server": "zookeeper:2181",
+# "spark.shuffle.rss.writer.bufferSpill": "1048576",
 
+# "spark.shuffle.rss.serverRatio": "14",
 # "spark.dynamicAllocation.enabled": "true",
 # "spark.dynamicAllocation.shuffleTracking.enabled": "true",
 # "spark.dynamicAllocation.shuffleTracking.timeout": "1",
-# "spark.dynamicAllocation.maxExecutors": "47"
+# "spark.dynamicAllocation.maxExecutors": "55"
+
+#   "spark.shuffle.rss.reader.sorterMemoryThreshold": "134217728",
+#   "spark.shuffle.rss.reader.dataAvailableWaitTime": "1800000",
+#   "spark.shuffle.rss.networkTimeout": "1800000",
+#   "spark.shuffle.rss.maxWaitTime": "1800000",
+# "spark.shuffle.rss.useConnectionPool": "true",
+# "spark.shuffle.rss.writer.asyncFinish": "true",
+# "spark.shuffle.rss.writer.supportAggregate": "true"
+# "spark.shuffle.rss.writer.bufferSize": "524288",
+# "spark.shuffle.rss.reader.sorterBufferSize": "524288",
+
 export EMRCLUSTER_NAME=my-ack-vc
 # export EMRCLUSTER_NAME=emr-on-eks-nvme
 export AWS_REGION=us-east-1
@@ -22,7 +42,7 @@ export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
-  --name em66-rss-tpcds-dra-zk \
+  --name em66-rss-tpcds-dra-rss \
   --execution-role-arn $EMR_ROLE_ARN \
   --release-label emr-6.6.0-latest \
   --job-driver '{
@@ -40,20 +60,16 @@ aws emr-containers start-job-run \
           "spark.kubernetes.executor.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/executor-pod-template.yaml",
      
           "spark.executor.memoryOverhead": "2G",
-          "spark.network.timeout": "2000s",
-          "spark.executor.heartbeatInterval": "300s",
-          "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds-zk",
+          "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds-rss",
+          "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
 
           "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
+          "spark.shuffle.rss.writer.maxThreads": "8",
+
+          "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
           "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338",
           "spark.shuffle.rss.serverSequence.startIndex": "0",
-          "spark.shuffle.rss.serverSequence.endIndex": "1",
-          "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
-
-          "spark.shuffle.io.numConnectionsPerPeer": "8",
-          "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
-          "spark.shuffle.file.buffer":"256k"
-
+          "spark.shuffle.rss.serverSequence.endIndex": "1"
       }},
       {
         "classification": "spark-log4j", 

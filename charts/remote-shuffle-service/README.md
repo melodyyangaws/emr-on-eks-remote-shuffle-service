@@ -12,7 +12,7 @@ helm version --short
 
 Command example to install:
 ```
-helm install remote-shuffle-service charts/remote-shuffle-service --namespace remote-shuffle-service --create-namespace --debug
+helm install rss charts/remote-shuffle-service --namespace remote-shuffle-service --create-namespace --debug
 
 ```
 
@@ -45,9 +45,13 @@ We run the shuffle service under a Hadoop user, however as a root user who needs
 
 ### autoscaling
 
-the RSS Server is a statefulset, which provides the high availability feataure with autoscaling. It can scale from 1 to N number of pods based on your replicas setting in the [values.yaml](./values.yaml) file. In this repo, we set replicas to 5 instances, with the name of rss-[index number] from 0 to 4. For example: `rss-0`
+the RSS Server is a statefulset, which provides the high availability feataure with autoscaling. It can scale from 1 to N number of pods based on your replicas setting in the [values.yaml](./values.yaml) file. In this repo, we set replicas to 2 instances, with the name of rss-[index number] from 0 to 1. For example: `rss-0`
 
 ```
-replicas: 5
+replicas: 2
+```
+To scale out, for example to 5 instances, simply run the command:
+```
+kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=5
 ```
 ![](../../images/rss-image.png)

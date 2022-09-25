@@ -25,7 +25,7 @@ Run following command under root directory of this project:
 git clone https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service.git
 cd emr-on-eks-remote-shuffle-service.git
 
-helm install remote-shuffle-service charts/remote-shuffle-service -f charts/remote-shuffle-service/values.yaml -n remote-shuffle-service --create-namespace
+helm install rss charts/remote-shuffle-service -f charts/remote-shuffle-service/values.yaml -n remote-shuffle-service --create-namespace
 ```
 
 Before the installation, take a look at the [charts/remote-shuffle-service/values.yaml](./charts/remote-shuffle-service/values.yaml). There are few configs need to pay attention to. 
@@ -96,9 +96,8 @@ Build an OSS Spark docker image:
 ```bash
 docker build -t $ECR_URL/rss-spark-benchmark:3.2.1 -f docker/oss-jdk8/Dockerfile --build-arg SPARK_BASE_IMAGE=ghcr.io/datapunchorg/spark:spark-3.2.1-1643336295 .
 docker push $ECR_URL/rss-spark-benchmark:3.2.1
-
+```
 Add configure to your Spark application like following, keep string like `rss-%s` inside value for `spark.shuffle.rss.serverSequence.connectionString`, since `RssShuffleManager` will use that to format connection string for different RSS server instances:
-
 ```bash
 "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
 "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
@@ -106,23 +105,10 @@ Add configure to your Spark application like following, keep string like `rss-%s
 "spark.shuffle.rss.serverSequence.startIndex": "0",
 "spark.shuffle.rss.serverSequence.endIndex": "1",
 "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
-"spark.dynamicAllocation.enabled": "true",
-"spark.dynamicAllocation.minExecutors": "1",
-"spark.dynamicAllocation.maxExecutors": "50",
-"spark.dynamicAllocation.shuffleTracking.enabled": "true",
-"spark.dynamicAllocation.shuffleTracking.timeout": "1"
 ```
-
+The setting`"spark.shuffle.rss.serviceRegistry.type": "serverSequence"` means the metadata will be stored in a cluster of standalone RSS servers.
 Please note the value for "spark.shuffle.rss.serverSequence.connectionString" contains string like "rss-%s". This is intended because 
-RssShuffleManager will use it to generate actual connection string like rss-0.xxx and rss-1.xxx.
-
-`"spark.shuffle.rss.serviceRegistry.type": "serverSequence",` means the metadata will be stored in memory, this is suitable to a quick start testing. For production workloads, it is recommended to use the zookeeper, similar to this Spark config:
-```bash
-# "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
-  "spark.shuffle.rss.serviceRegistry.type": "standalone",
-  "spark.shuffle.rss.serviceRegistry.server": "zookeeper:2181",
-
-```
+RssShuffleManager will use it to generate actual connection string like rss-0.xxx and rss-1.xxx. 
 
 
 ### Run Benchmark

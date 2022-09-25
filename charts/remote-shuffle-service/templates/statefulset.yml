@@ -50,7 +50,6 @@ spec:
       initContainers:  
       - name: volume-permission
         image: public.ecr.aws/docker/library/busybox
-        imagePullPolicy: IfNotPresent
         # grant volume access to hadoop user  
         command: ['sh', '-c', 'mkdir {{ $volumeMounts.mountPath }};chown -R {{ $userId}}:{{ $userGroup }} {{ $volumeMounts.mountPath }}']  
         volumeMounts:
@@ -68,6 +67,7 @@ spec:
     {{- end }} 
     {{- end }}   
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.imagePullPolicy | default "IfNotPresent" }}
           resources:
             requests:
               memory: {{ .Values.resources.requests.memory }}

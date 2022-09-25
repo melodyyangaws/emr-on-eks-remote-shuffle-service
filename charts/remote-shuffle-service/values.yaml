@@ -1,8 +1,8 @@
 replicas: 2
 
 image:
-  repository: ghcr.io/datapunchorg/remoteshuffleservice
-  tag: k8s-spark-3.2
+  repository: 021732063925.dkr.ecr.us-east-1.amazonaws.com/rss-server
+  tag: spark3.2.0
 
 nodeSelector:
     app: rss
@@ -35,7 +35,7 @@ command:
   rootdir: "/rss1"
   dataRetentionMillis: "14400000"  # 4 hours
   nettyAcceptThreads: 8
-  nettyWorkerThreads: 60
+  nettyWorkerThreads: 80
 
 ports:
   shuffleServer: 9338

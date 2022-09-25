@@ -41,25 +41,25 @@ COPY --from=sbt /tmp/emr-on-eks-benchmark/benchmark/target/scala-2.12/*jar ${SPA
 # ENV JAVA_HOME /usr/lib/java
 # ENV PATH $PATH:$JAVA_HOME/bin
 
-# # install maven
-# RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
-#  && curl -fsSL -o /tmp/apache-maven.tar.gz ${BASE_URL}/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
-#  && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
-#  && rm -f /tmp/apache-maven.tar.gz \
-#  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
+# install maven
+RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
+ && curl -fsSL -o /tmp/apache-maven.tar.gz ${BASE_URL}/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
+ && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
+ && rm -f /tmp/apache-maven.tar.gz \
+ && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
 
-# ENV MAVEN_HOME /usr/share/maven
-# ENV MAVEN_CONFIG "$USER_HOME_DIR/.m2"
+ENV MAVEN_HOME /usr/share/maven
+ENV MAVEN_CONFIG "$USER_HOME_DIR/.m2"
 
-# # compile RSS client
-# RUN git clone -b k8s-spark-3.2 --single-branch https://github.com/datapunchorg/RemoteShuffleService.git /tmp/RemoteShuffleService
-# WORKDIR /tmp/RemoteShuffleService
-# RUN mvn clean package -Pclient -DskipTests -Dmaven.javadoc.skip=true \
-#     && rm target/original-remote-shuffle-service-*.jar \
-#     && rm target/remote-shuffle-service-*-sources.jar \
-#     && mv target/remote-shuffle-service-client-*.jar ${SPARK_HOME}/jars/ 
+# compile RSS client
+RUN git clone -b k8s-spark-3.2 --single-branch https://github.com/datapunchorg/RemoteShuffleService.git /tmp/RemoteShuffleService
+WORKDIR /tmp/RemoteShuffleService
+RUN mvn clean package -Pclient -DskipTests -Dmaven.javadoc.skip=true \
+    && rm target/original-remote-shuffle-service-*.jar \
+    && rm target/remote-shuffle-service-*-sources.jar \
+    && mv target/remote-shuffle-service-client-*.jar ${SPARK_HOME}/jars/ 
 
-# WORKDIR /home/hadoop   
+WORKDIR /home/hadoop   
 # Use hadoop user and group 
-# USER hadoop:hadoop
+USER hadoop:hadoop
 
