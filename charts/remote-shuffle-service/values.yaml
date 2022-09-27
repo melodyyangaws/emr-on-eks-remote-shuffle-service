@@ -29,7 +29,7 @@ volumes:
       path: /local1
 
 command:
-  jvmHeapSizeOption: "-Xmx800M"
+  jvmHeapSizeOption: "-Xmx8192M"
   # point to a nmve SSD volume as the shuffle data storage, not use root volume.
   # the RSS only supports a single disk so far. Use storage optmized EC2 instance type.
   rootdir: "/rss1"
