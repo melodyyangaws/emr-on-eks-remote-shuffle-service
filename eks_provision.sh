@@ -64,6 +64,12 @@ aws iam create-policy --policy-name $ROLE_NAME-policy --policy-document file:///
 aws iam create-role --role-name $ROLE_NAME --assume-role-policy-document file:///tmp/trust-policy.json
 aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::$ACCOUNTID:policy/$ROLE_NAME-policy
 
+echo "===================================================="
+echo "  Create a Cluster placement group for EKS ......"
+echo "===================================================="
+aws ec2 create-placement-group --group-name mytestgroup --strategy cluster \
+  --tag-specifications 'ResourceType=placement-group,Tags={Key=app,Value=sparktest}'
+
 echo "==============================================="
 echo "  Create EKS Cluster ......"
 echo "==============================================="
@@ -98,12 +104,14 @@ managedNodeGroups:
       - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs ${DEV}; sudo mkdir -p /local${IDX}; sudo echo ${DEV} /local${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=$((${IDX} + 1)); done"
       - "sudo mount -a"
       - "sudo chown ec2-user:ec2-user /local*"
-    instanceType: i3en.3xlarge
+    instanceType: i3en.6xlarge
     volumeSize: 20
     volumeType: gp3
     minSize: 1
     desiredCapacity: 1
     maxSize: 30
+    placement:
+      groupName: "mytestgroup"
     labels:
       app: rss
     tags:
@@ -124,6 +132,8 @@ managedNodeGroups:
     minSize: 1
     desiredCapacity: 1
     maxSize: 50
+    placement:
+      groupName: "mytestgroup"
     labels:
       app: sparktest
     tags:
