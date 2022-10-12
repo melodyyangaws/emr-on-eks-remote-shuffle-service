@@ -14,7 +14,7 @@ FROM mozilla/sbt:8u292_1.5.4 as sbt
 ARG SPARK_VERSION=3.2.0
 
 # Build the Databricks SQL perf library
-RUN git clone -b spark-3.2.0 --single-branch https://github.com/aws-samples/emr-on-eks-benchmark.git /tmp/emr-on-eks-benchmark \
+RUN git clone -b spark-${SPARK_VERSION} --single-branch https://github.com/aws-samples/emr-on-eks-benchmark.git /tmp/emr-on-eks-benchmark \
     && cd /tmp/emr-on-eks-benchmark/spark-sql-perf/ \
     && sbt +package   
      
@@ -33,7 +33,7 @@ COPY --from=tpc-toolkit /tmp/tpcds-kit/tools /opt/tpcds-kit/tools
 COPY --from=sbt /tmp/emr-on-eks-benchmark/benchmark/target/scala-2.12/*jar ${SPARK_HOME}/examples/jars/
 
 # # upgrade JDK to corretto11, still not compatible with EMR on EKS
-# RUN apt-get update && apt-get install -y curl git \
+# RUN apt-get update && apt-get install -y curl git
 #     && curl -fsSL -o /usr/lib/amazon-corretto-11-x64-linux-jdk.tar.gz https://corretto.aws/downloads/latest/amazon-corretto-11-x64-linux-jdk.tar.gz \
 #     && tar -xzf /usr/lib/amazon-corretto-11-x64-linux-jdk.tar.gz \
 #     && rm -f /usr/lib/amazon-corretto-11-x64-linux-jdk.tar.gz
@@ -42,7 +42,8 @@ COPY --from=sbt /tmp/emr-on-eks-benchmark/benchmark/target/scala-2.12/*jar ${SPA
 # ENV PATH $PATH:$JAVA_HOME/bin
 
 # install maven
-RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
+RUN apt-get update && apt-get install -y curl git \
+ && mkdir -p /usr/share/maven /usr/share/maven/ref \
  && curl -fsSL -o /tmp/apache-maven.tar.gz ${BASE_URL}/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
  && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
  && rm -f /tmp/apache-maven.tar.gz \

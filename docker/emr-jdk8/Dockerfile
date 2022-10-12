@@ -45,7 +45,7 @@ ARG BASE_URL=https://apache.osuosl.org/maven/maven-3/${MAVEN_VERSION}/binaries
 
 USER root
 
-COPY --from=tpc-toolkit /tmp/RemoteShuffleService/target/target/remote-shuffle-service-client.jar  ${SPARK_HOME}/jars/
+COPY --from=rss-client /tmp/RemoteShuffleService/target/remote-shuffle-service-client.jar  ${SPARK_HOME}/jars
 COPY --from=sbt /tmp/emr-on-eks-benchmark/benchmark/target/scala-2.12/*jar ${SPARK_HOME}/examples/jars/
 
 # # upgrade JDK to corretto11, still not compatible with EMR on EKS

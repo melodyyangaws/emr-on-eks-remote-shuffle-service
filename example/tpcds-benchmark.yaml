@@ -6,9 +6,11 @@ metadata:
   name: tpcds-benchmark-oss
   namespace: oss
 spec:
+  nodeSelector:
+    app: sparktest
   type: Scala
   mode: cluster
-  image: 021732063925.dkr.ecr.us-east-1.amazonaws.com/rss-spark-benchmark:spark3.2.0
+  image: 021732063925.dkr.ecr.us-east-1.amazonaws.com/rss-spark-benchmark:3.2.0
   imagePullPolicy: Always
   sparkVersion: 3.2.0
   mainClass: com.amazonaws.eks.tpcds.BenchmarkSQL
@@ -34,34 +36,27 @@ spec:
     - "true"
   sparkConf:
     "spark.network.timeout": "2000s"
-    "spark.executor.heartbeatInterval": "300s"
-    # AQE
-    "spark.sql.adaptive.enabled": "true"
-    "spark.sql.adaptive.localShuffleReader.enabled": "true"
-    "spark.sql.adaptive.coalescePartitions.enabled": "true"
-    "spark.sql.adaptive.skewJoin.enabled": "true"
-    # "spark.sql.adaptive.logLevel": "WARN"      
+    "spark.executor.heartbeatInterval": "300s"  
     # IRSA for S3 connection
     "spark.kubernetes.executor.podNamePrefix": "oss-spark-tpcds"
     "spark.hadoop.fs.s3a.aws.credentials.provider": "com.amazonaws.auth.WebIdentityTokenCredentialsProvider"
     "spark.hadoop.fs.s3.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
     "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version": "2" 
+    "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
 
+    "spark.shuffle.rss.writer.maxThreads": "64"
     "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager"
     "spark.shuffle.rss.serviceRegistry.type": "serverSequence"
     "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338"
-    "spark.shuffle.rss.serverSequence.startIndex": "5"
-    "spark.shuffle.rss.serverSequence.endIndex": "10"
-    "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
-    "spark.dynamicAllocation.enabled": "true"
-    "spark.dynamicAllocation.minExecutors": "1"
-    "spark.dynamicAllocation.maxExecutors": "50"
-    "spark.dynamicAllocation.shuffleTracking.enabled": "true"
-    "spark.dynamicAllocation.shuffleTracking.timeout": "1"
+    "spark.shuffle.rss.serverSequence.startIndex": "0"
+    "spark.shuffle.rss.serverSequence.endIndex": "3"
+    "spark.shuffle.rss.useConnectionPool": "true"
+    "spark.shuffle.rss.writer.asyncFinish": "true"
 
-    # Keep pods in a single AZ 
+    # Run in parallel in different nodegroup 
     # "spark.kubernetes.node.selector.topology.kubernetes.io/zone": "us-east-1b"
-    # "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c54"
+    # "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59d"
+    
     # # turn on prometheus
     # "spark.ui.prometheus.enabled": "true"
     # "spark.executor.processTreeMetrics.enabled": "true"
@@ -83,12 +78,6 @@ spec:
       volumeMounts:
         - name: spark-local-dir-1
           mountPath: /ossdata1
-        # - name: spark-local-dir-2
-        #   mountPath: /ossdata2
-        # - name: spark-local-dir-3
-        #   mountPath: /ossdata3
-        # - name: spark-local-dir-4
-        #   mountPath: /ossdata4  
     env:
       - name: BUCKET_PARAM
         valueFrom:
@@ -103,12 +92,6 @@ spec:
     volumeMounts:
       - name: spark-local-dir-1
         mountPath: /ossdata1
-      # - name: spark-local-dir-2
-      #   mountPath: /ossdata2
-      # - name: spark-local-dir-3
-      #   mountPath: /ossdata3
-      # - name: spark-local-dir-4
-      #   mountPath: /ossdata4  
   executor:
     initContainers:  
     - name: volume-permission
@@ -117,40 +100,18 @@ spec:
       volumeMounts:
         - name: spark-local-dir-1
           mountPath: /ossdata1
-        # - name: spark-local-dir-2
-        #   mountPath: /ossdata2
-        # - name: spark-local-dir-3
-        #   mountPath: /ossdata3
-        # - name: spark-local-dir-4
-        #   mountPath: /ossdata4  
     cores: 4
     coreLimit: "4.3"
     memory: "6g"
     memoryOverhead: "2g"
     # 8 executors per node  
-    # instances: 47
+    instances: 47
     volumeMounts:
       - name: spark-local-dir-1
-        mountPath: /ossdata1
-  #     - name: spark-local-dir-2
-  #       mountPath: /ossdata2
-  #     - name: spark-local-dir-3
-  #       mountPath: /ossdata3
-  #     - name: spark-local-dir-4
-  #       mountPath: /ossdata4   
+        mountPath: /ossdata1 
   volumes:
     - name: spark-local-dir-1
       hostPath:
         path: /local1
-    # - name: spark-local-dir-2
-    #   hostPath:
-    #     path: /local2
-    # - name: spark-local-dir-3
-    #   hostPath:
-    #     path: /local3
-    # - name: spark-local-dir-4
-    #   hostPath:
-    #     path: /local4
-
   restartPolicy:
     type: Never

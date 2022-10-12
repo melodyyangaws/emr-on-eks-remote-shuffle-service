@@ -36,7 +36,7 @@ spec:
     "spark.kubernetes.memoryOverheadFactor": "0.3"
     "spark.sql.files.maxRecordsPerFile": "30000000"
     "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
-    # "spark.kubernetes.node.selector.eks.amazonaws.com/capacityType": "ON_DEMAND"
+    "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59d"
     # "spark.kubernetes.node.selector.topology.kubernetes.io/zone": "us-west-2b"
 
     # S3 settings
@@ -80,7 +80,7 @@ spec:
     cores: 11
     coreLimit: "11.1"
     memory: "15g"
-    # 3 executors per node 9 nodes     
+    # 3 exec/9 nodes/3TB (c5d.9xl), 8 exec/24 nodes/100TB(i3en.24xlarge) 
     instances: 26
     volumeMounts:
       - name: spark-local-dir-1

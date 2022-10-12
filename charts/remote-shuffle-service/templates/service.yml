@@ -19,9 +19,9 @@ metadata:
   name: rss
 spec:
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: {{ .Values.ports.healthcheck }}
+      targetPort: {{ .Values.ports.healthcheck }}
       name: healthcheck
   clusterIP: None
   selector:
-    app: rss
+    {{- .Values.nodeSelector | toYaml | nindent 4 }}
