@@ -1,18 +1,18 @@
 replicas: 2
 
 image:
-  repository: 021732063925.dkr.ecr.us-east-1.amazonaws.com/rss-server
+  repository: public.ecr.aws/myang-poc/rss-server
   tag: spark3.2.0
 
 nodeSelector:
     app: rss
 resources:
   requests:
-    memory: "40G"
-    cpu: "5"
+    memory: "172G"
+    cpu: "21.6"
   limits:
-    memory: "45G"
-    cpu: "5.5"
+    memory: "192G"
+    cpu: "24"
 
 securityContext:
   runAsGroup: 0
