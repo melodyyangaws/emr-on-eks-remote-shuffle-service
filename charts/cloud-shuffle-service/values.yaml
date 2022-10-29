@@ -1,36 +1,45 @@
-replicaCount: 1
+replicas: 2
 image:
-  name: ghcr.io/melodyyangaws/hive-metastore
-  tag: 3.0.0
-  pullPolicy: IfNotPresent
-serviceAccountName: hive
-env:
-  HIVE_DB_EXTERNAL: "true"
-  HIVE_DB_DRIVER: com.mysql.cj.jdbc.Driver
-  HIVE_CONF_PARAMS: "hive.metastore.schema.verification:false;datanucleus.autoCreateSchema:false"
-  HIVE_DB_JDBC_URL: {RDS_JDBC_URL}
-  # either hardcoded here or get from Secrets Manager below
-  HIVE_DB_USER: {RDS_USERNAME}
-  HIVE_DB_PASS: {RDS_PASSWORD}
-  HIVE_WAREHOUSE_S3LOCATION: {S3BUCKET}
-
-# optional: get sensative info from external secret store, such as AWS Secrets Manager
-# secretName: <EKS_SECRET_RESOURCE_NAME>
-# secret:
-  # HIVE_DB_USER: <SECRET_MANAGER_SECRET_KEY_FOR_USERNAME>
-  # HIVE_DB_PASS: <SECRET_MANAGER_SECRET_KEY_FOR_PASSWORD>
-service:
-  type: ClusterIP 
+  repository: 021732063925.dkr.ecr.us-east-1.amazonaws.com/css-server
+  tag: v2
+  imagePullPolicy: Always
+nodeSelector:
+    app: css
 resources:
-  limits:
-    cpu: 1
-    memory: 1000Mi
   requests:
-    cpu: 400m
-    memory: 1000Mi
-autoscaling:
-  enabled: true
-  minReplicas: 1
-  maxReplicas: 2
-  targetCPUUtilizationPercentage: 80
-  targetMemoryUtilizationPercentage: 80
+    memory: "172G" #i3en.6xl
+    cpu: "21.6"
+  limits:
+    memory: "192G"
+    cpu: "24"
+
+securityContext:
+  runAsGroup: 0
+  runAsUser: 0
+# configure the shuffle service volume owner as Hadoop user (EMR on EKS is 999:1000)
+volumeUser: 999
+volumeGroup: 1000
+volumeMounts:
+  - name: spark-local-dir-1
+    mountPath: /css1/css
+  - name: spark-local-dir-2
+    mountPath: /css2/css
+volumes:
+  - name: spark-local-dir-1
+    hostPath:
+      path: /local1
+  - name: spark-local-dir-2
+    hostPath:
+      path: /local2
+command:
+
+ports:
+  shuffleServer: 9099
+env:  
+  CLUSTER_NAME: my2css
+  REGISTRY_TYPE: zookeeper   
+  ZK_ADDRESS: "zk-zookeeper-0.zk-zookeeper-headless.emr.svc.cluster.local:2181,zk-zookeeper-1.zk-zookeeper-headless.emr.svc.cluster.local:2181"
+  SHUFFLE_DATA_DIR: "/css1/css,/css2/css"
+  CSS_CONF_PARAMS: "css.disk.dir.num.min = 1;css.flush.queue.capacity = 4096;css.flush.buffer.size = 128k;css.network.timeout = 600s;css.epoch.rotate.threshold = 1g;css.push.io.numConnectionsPerPeer = 8;css.push.io.threads = 128;css.replicate.threads = 128;css.fetch.io.threads = 64;css.fetch.chunk.size = 4m;css.shuffle.server.chunkFetchHandlerThreadsPercent = 400"
+  JVM_HEAP_SIZE: "-Xmx8192m"
+  EXTRA_JAVA_OPT: "-XX:MaxDirectMemorySize=100000m"

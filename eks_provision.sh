@@ -10,9 +10,12 @@ export EMR_NAMESPACE=emr
 export OSS_NAMESPACE=oss
 export EKS_VERSION=1.21
 export EMRCLUSTER_NAME=emr-on-$EKSCLUSTER_NAME
+# export EMRCLUSTER_NAME=my-ack-vc
 export ROLE_NAME=${EMRCLUSTER_NAME}-execution-role
+# export ROLE_NAME=ack-emrcontainers-jobexecution-role
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export S3TEST_BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
+# export S3TEST_BUCKET=emr-on-eks-nvme-021732063925-us-east-1
 
 echo "==============================================="
 echo "  setup IAM roles ......"
@@ -101,7 +104,11 @@ managedNodeGroups:
   - name: rss-i3en
     availabilityZones: ["${AWS_REGION}b"] 
     preBootstrapCommands:
-      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs ${DEV}; sudo mkdir -p /local${IDX}; sudo echo ${DEV} /local${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=$((${IDX} + 1)); done"
+      # - "sudo yum -y install mdadm"
+      # - "IDX=0;for DEV in /dev/nvme[1-9]n1; do IDX=$((${IDX} + 1)); done; sudo mdadm --create --verbose /dev/md0 --level=0 --name=MY_RAID --chunk=64 --raid-devices=${IDX} /dev/nvme[1-9]n1"
+      # - "sudo mkfs.xfs -L MY_RAID /dev/md0;sudo mkdir -p /local1; sudo echo /dev/md0 /local1 xfs defaults,noatime 1 2 >> /etc/fstab;sudo mount -a"
+      # - "sudo chown ec2-user:ec2-user /local1"
+      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs \${DEV}; sudo mkdir -p /local\${IDX}; sudo echo \${DEV} /local\${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=\$((\${IDX} + 1)); done"
       - "sudo mount -a"
       - "sudo chown ec2-user:ec2-user /local*"
     instanceType: i3en.6xlarge
@@ -118,11 +125,31 @@ managedNodeGroups:
       # required for cluster-autoscaler auto-discovery
       k8s.io/cluster-autoscaler/enabled: "true"
       k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"  
+  - name: css-i3en
+    availabilityZones: ["${AWS_REGION}b"] 
+    preBootstrapCommands:
+      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs \${DEV}; sudo mkdir -p /local\${IDX}; sudo echo \${DEV} /local\${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=\$((\${IDX} + 1)); done"
+      - "sudo mount -a"
+      - "sudo chown ec2-user:ec2-user /local*"
+    instanceType: i3en.6xlarge
+    volumeSize: 20
+    volumeType: gp3
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 20
+    placement:
+      groupName: mytestgroup
+    labels:
+      app: css
+    tags:
+      # required for cluster-autoscaler auto-discovery
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"  
 
   - name: c59d
     availabilityZones: ["${AWS_REGION}b"] 
     preBootstrapCommands:
-      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs ${DEV}; sudo mkdir -p /local${IDX}; sudo echo ${DEV} /local${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=$((${IDX} + 1)); done"
+      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs \${DEV}; sudo mkdir -p /local\${IDX}; sudo echo \${DEV} /local\${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=\$((\${IDX} + 1)); done"
       - "sudo mount -a"
       - "sudo chown ec2-user:ec2-user /local*"
     instanceType: c5d.9xlarge

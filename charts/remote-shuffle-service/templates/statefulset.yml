@@ -16,13 +16,13 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: rss
+  name: {{ .Release.Name }}
   labels: {{- .Values.nodeSelector | toYaml | nindent 4 }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels: {{- .Values.nodeSelector | toYaml | nindent 6 }}
-  serviceName: rss
+  serviceName: {{ .Release.Name }}
   template:
     metadata:
       labels: {{- .Values.nodeSelector | toYaml | nindent 8 }}
@@ -58,7 +58,7 @@ spec:
   {{- end }} 
   {{- end }}   
       containers:
-        - name: rss
+        - name: {{ .Release.Name }}
     {{- if .Values.volumeMounts }}
           volumeMounts:
     {{- range $volumeMounts := .Values.volumeMounts }}

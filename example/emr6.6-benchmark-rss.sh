@@ -8,24 +8,25 @@
 # "spark.dynamicAllocation.maxExecutors": "55"
 #  "spark.shuffle.rss.reader.sorterMemoryThreshold": "134217728",
 # "spark.shuffle.rss.reader.sorterBufferSize": "512k",
-# "spark.shuffle.rss.writer.bufferSize": "262144"
+
 # "spark.shuffle.rss.writer.bufferSpill": "67108864",
 # "spark.shuffle.rss.mapsPerSplit": "1600",
 
-# export EMRCLUSTER_NAME=my-ack-vc
-export EMRCLUSTER_NAME=emr-on-eks-rss
+
+export EMRCLUSTER_NAME=my-ack-vc
+# export EMRCLUSTER_NAME=emr-on-eks-rss
 export AWS_REGION=us-east-1
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export VIRTUAL_CLUSTER_ID=$(aws emr-containers list-virtual-clusters --query "virtualClusters[?name == '$EMRCLUSTER_NAME' && state == 'RUNNING'].id" --output text)
-# export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
-export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
-export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
-# export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
+export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
+# export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
+# export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
+export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
 export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
-  --name em66-rss-tpcds \
+  --name em66-rss-tpcds-8thread-3svr-rssbuff-noboolean \
   --execution-role-arn $EMR_ROLE_ARN \
   --release-label emr-6.6.0-latest \
   --job-driver '{
@@ -46,16 +47,15 @@ aws emr-containers start-job-run \
           "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds",
           "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
 
-          "spark.shuffle.io.numConnectionsPerPeer": "64",
-          "spark.shuffle.file.buffer": "512k",
-          "spark.shuffle.service.index.cache.size": "128m",
-
-          "spark.shuffle.rss.writer.maxThreads": "64",
+          "spark.shuffle.rss.writer.maxThreads": "8",
+          "spark.shuffle.rss.writer.bufferSize": "1024",
           "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
           "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
           "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338",
-          "spark.shuffle.rss.serverSequence.startIndex": "0",
-          "spark.shuffle.rss.serverSequence.endIndex": "2",
+          "spark.shuffle.rss.serverSequence.startIndex": "3",
+          "spark.shuffle.rss.serverSequence.endIndex": "5",
+          "spark.shuffle.rss.useConnectionPool": "true",
+          "spark.shuffle.rss.writer.asyncFinish": "true",
           "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59d"
       }},
       {

@@ -1,3 +1,2 @@
-1. Forward Hive Metastore running the following command:
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "hive-metastore.name" . }},app.kubernetes.io/instance={{ .Release.Name }},app={{ include "hive-metastore.name" . }}" -o jsonpath="{.items[0].metadata.name}")
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 9083:9083
+To scale the cluster to 3, run the following command:
+  kubectl scale statefulsets {{ .Release.Name }} --namespace {{ .Release.Namespace }} --replicas=3  (from 0 to N Number if needed)

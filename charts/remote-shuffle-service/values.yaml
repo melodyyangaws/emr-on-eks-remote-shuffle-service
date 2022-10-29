@@ -35,8 +35,8 @@ command:
   # the RSS only supports a single disk so far. Use storage optmized EC2 instance type.
   rootdir: "/rss1"
   dataRetentionMillis: "14400000"  # 4 hours
-  nettyAcceptThreads: 8
-  nettyWorkerThreads: 80
+  nettyAcceptThreads: 16
+  nettyWorkerThreads: 160
 
 ports:
   shuffleServer: 9338

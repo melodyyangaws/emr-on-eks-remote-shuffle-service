@@ -1,10 +1,10 @@
-FROM amazoncorretto:11 as rss-jdk11
+FROM amazoncorretto:8 as rss-jdk8
 # FROM openjdk:11-jre-slim as rss-jdk11
 ARG MAVEN_VERSION=3.8.6
 ARG BASE_URL=https://apache.osuosl.org/maven/maven-3/${MAVEN_VERSION}/binaries
 
 # install maven
-RUN yum update -y && yum install -y git tar
+RUN yum update -y && yum install -y git tar hostname openssh-server procps
 RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
  && curl -fsSL -o /tmp/apache-maven.tar.gz ${BASE_URL}/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
  && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \

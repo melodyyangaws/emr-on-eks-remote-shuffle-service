@@ -1,24 +1,15 @@
-<configuration>
-  {{- if index .Env  "HIVE_WAREHOUSE_S3LOCATION"  }}
-  <property>
-    <name>fs.defaultFS</name>
-    <value>{{ .Env.HIVE_WAREHOUSE_S3LOCATION }}</value>
-  </property>
+css.cluster.name = {{ .Env.CLUSTER_NAME | default "csscluster" }}
+css.worker.registry.type = {{ .Env.REGISTRY_TYPE | default "zookeeper" }}
+css.zookeeper.address = {{ .Env.ZK_ADDRESS }}
+
+# local disk storage
+css.diskFlusher.base.dirs = {{ .Env.SHUFFLE_DATA_DIR }}
+css.disk.dir.num.min = 1
+
+# css worker common conf
+{{- if (index .Env "CSS_CONF_PARAMS")  }}
+  {{- $conf_list := .Env.CSS_CONF_PARAMS | strings.Split ";" }}
+  {{- range $parameter := $conf_list}}
+{{ $parameter }}
   {{- end }}
-  <property>
-    <name>fs.s3a.impl</name>
-    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
-  </property>   
-  <property>
-    <name>fs.s3.impl</name>
-    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
-  </property>
-  <property>
-    <name>fs.s3n.impl</name>
-    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
-  </property>
-  <property>
-      <name>fs.s3a.aws.credentials.provider</name>
-      <value>com.amazonaws.auth.DefaultAWSCredentialsProviderChain</value>
-  </property>
-</configuration>
+{{- end }}

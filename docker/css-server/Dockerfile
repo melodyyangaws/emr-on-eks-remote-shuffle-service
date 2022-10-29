@@ -2,12 +2,25 @@
 # // SPDX-License-Identifier: MIT-0
 # ARG SPARK_BASE_IMAGE=public.ecr.aws/myang-poc/spark:3.2.1_hadoop_3.3.1
 
-FROM amazoncorretto:8 as rss-jdk8
+FROM amazoncorretto:8 as jdk8
 ARG MAVEN_VERSION=3.8.6
 ARG BASE_URL=https://apache.osuosl.org/maven/maven-3/${MAVEN_VERSION}/binaries
+# SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# Install Gomplate
+RUN curl -sfSL https://github.com/hairyhenderson/gomplate/releases/download/v3.6.0/gomplate_linux-amd64 \
+      -o /usr/local/bin/gomplate \
+    && chmod 755 /usr/local/bin/gomplate
 
 # install maven
 RUN yum update -y && yum install -y git tar
+# hostname openssh-server procps
+
+# RUN echo "PermitRootLogin prohibit-password/PermitRootLogin yes/" >> /etc/ssh/sshd_config
+# RUN ssh-keygen -A
+# RUN echo "root:centos" | chpasswd
+# EXPOSE 22
+# CMD ["/usr/sbin/sshd", "-D"]
+
 RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
  && curl -fsSL -o /tmp/apache-maven.tar.gz ${BASE_URL}/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
  && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
@@ -29,11 +42,7 @@ RUN mv css-*-bin.tgz css-bin.tgz \
 
 ENV CSS_HOME /usr/share/css
 WORKDIR ${CSS_HOME}
-# zookeeper mode
-# RUN ./sbin/start-workers.sh
-# standalone mode
-# RUN ./sbin/start-all.sh
 
-# # for client
-# RUN cp $CSS_HOME/client/spark-3/*.jar to $SPARK_HOME/jars/
-
+COPY conf/* sbin/
+RUN chmod +x sbin/*
+ENTRYPOINT ["sbin/entrypoint.sh"]

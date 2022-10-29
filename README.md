@@ -33,9 +33,9 @@ helm install rss charts/remote-shuffle-service -f charts/remote-shuffle-service/
 
 Before the installation, take a look at the [charts/remote-shuffle-service/values.yaml](./charts/remote-shuffle-service/values.yaml). There are few configs need to pay attention to. 
 
-To scale up or scale down the Shuffle server, run the command:
+To scale up or scale down the Shuffle server, specify the number of instances you want, then run the command:
 ```bash
-kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=4
+kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=0
 ```
 
 
