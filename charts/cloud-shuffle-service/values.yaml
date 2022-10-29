@@ -1,7 +1,7 @@
 replicas: 2
 image:
-  repository: 021732063925.dkr.ecr.us-east-1.amazonaws.com/css-server
-  tag: v2
+  repository: public.ecr.aws/myang-poc/css-server
+  tag: latest
   imagePullPolicy: Always
 nodeSelector:
     app: css
