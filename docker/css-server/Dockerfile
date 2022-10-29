@@ -12,12 +12,14 @@ RUN curl -sfSL https://github.com/hairyhenderson/gomplate/releases/download/v3.6
     && chmod 755 /usr/local/bin/gomplate
 
 # install maven
-RUN yum update -y && yum install -y git tar
-# hostname openssh-server procps
-
-# RUN echo "PermitRootLogin prohibit-password/PermitRootLogin yes/" >> /etc/ssh/sshd_config
+RUN yum update -y && yum install -y git tar hostname procps
+# openssh-server 
+# RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
 # RUN ssh-keygen -A
 # RUN echo "root:centos" | chpasswd
+# RUN sed -i'' -e's/^#PermitRootLogin prohibit-password$/PermitRootLogin yes/' /etc/ssh/sshd_config \
+#         && sed -i'' -e's/^#PasswordAuthentication yes$/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+#         && sed -i'' -e's/^#PermitEmptyPasswords no$/PermitEmptyPasswords yes/' /etc/ssh/sshd_config 
 # EXPOSE 22
 # CMD ["/usr/sbin/sshd", "-D"]
 
@@ -30,9 +32,12 @@ RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
 ENV MAVEN_HOME /usr/share/maven
 ENV MAVEN_CONFIG "$USER_HOME_DIR/.m2"
 
+
 # compile CSS server & client
 RUN git clone https://github.com/bytedance/CloudShuffleService.git /tmp/CloudShuffleService
 WORKDIR /tmp/CloudShuffleService
+COPY conf/build.sh .
+RUN chmod +x build.sh
 RUN ./build.sh
 
 RUN mv css-*-bin.tgz css-bin.tgz \
@@ -43,6 +48,6 @@ RUN mv css-*-bin.tgz css-bin.tgz \
 ENV CSS_HOME /usr/share/css
 WORKDIR ${CSS_HOME}
 
-COPY conf/* sbin/
-RUN chmod +x sbin/*
+COPY conf/entrypoint.sh sbin/
+RUN chmod +x sbin/entrypoint.sh
 ENTRYPOINT ["sbin/entrypoint.sh"]
