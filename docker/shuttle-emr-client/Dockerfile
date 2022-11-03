@@ -18,9 +18,10 @@ ENV MAVEN_HOME /usr/share/maven
 ENV MAVEN_CONFIG "$USER_HOME_DIR/.m2"
 
 # compile RSS client
-RUN git clone -b k8s-spark-3.2 --single-branch https://github.com/datapunchorg/RemoteShuffleService.git /tmp/RemoteShuffleService
-WORKDIR /tmp/RemoteShuffleService
+RUN git clone -b sp31 --single-branch https://github.com/cubefs/shuttle.git /tmp/shuttle
+WORKDIR /tmp/shuttle
 RUN mvn clean package -Pclient -DskipTests -Dmaven.javadoc.skip=true \
+
     && rm target/original-remote-shuffle-service-*.jar \
     && rm target/remote-shuffle-service-*-sources.jar \
     && mv target/remote-shuffle-service-client-*.jar target/remote-shuffle-service-client.jar 

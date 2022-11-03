@@ -105,7 +105,7 @@ managedNodeGroups:
     availabilityZones: ["${AWS_REGION}b"] 
     preBootstrapCommands:
       # - "sudo yum -y install mdadm"
-      # - "IDX=0;for DEV in /dev/nvme[1-9]n1; do IDX=$((${IDX} + 1)); done; sudo mdadm --create --verbose /dev/md0 --level=0 --name=MY_RAID --chunk=64 --raid-devices=${IDX} /dev/nvme[1-9]n1"
+      # - "IDX=0;for DEV in /dev/nvme[1-9]n1; do IDX=\$((\${IDX} + 1)); done; sudo mdadm --create --verbose /dev/md0 --level=0 --name=MY_RAID --chunk=64 --raid-devices=\${IDX} /dev/nvme[1-9]n1"
       # - "sudo mkfs.xfs -L MY_RAID /dev/md0;sudo mkdir -p /local1; sudo echo /dev/md0 /local1 xfs defaults,noatime 1 2 >> /etc/fstab;sudo mount -a"
       # - "sudo chown ec2-user:ec2-user /local1"
       - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs \${DEV}; sudo mkdir -p /local\${IDX}; sudo echo \${DEV} /local\${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=\$((\${IDX} + 1)); done"
@@ -144,23 +144,16 @@ managedNodeGroups:
     tags:
       # required for cluster-autoscaler auto-discovery
       k8s.io/cluster-autoscaler/enabled: "true"
-      k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"  
-
-  - name: c59d
-    availabilityZones: ["${AWS_REGION}b"] 
-    preBootstrapCommands:
-      - "IDX=1;for DEV in /dev/nvme[1-9]n1;do sudo mkfs.xfs \${DEV}; sudo mkdir -p /local\${IDX}; sudo echo \${DEV} /local\${IDX} xfs defaults,noatime 1 2 >> /etc/fstab; IDX=\$((\${IDX} + 1)); done"
-      - "sudo mount -a"
-      - "sudo chown ec2-user:ec2-user /local*"
-    instanceType: c5d.9xlarge
+      k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"
+  - name: c59
+    availabilityZones: ["${AWS_REGION}a","${AWS_REGION}b"] 
+    instanceType: c5.9xlarge
     # ebs optimization is enabled by default
-    volumeSize: 20
+    volumeSize: 50
     volumeType: gp3
     minSize: 1
     desiredCapacity: 1
     maxSize: 50
-    placement:
-      groupName: mytestgroup
     labels:
       app: sparktest
     tags:

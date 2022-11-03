@@ -6,27 +6,18 @@
 # "spark.dynamicAllocation.shuffleTracking.enabled": "true",
 # "spark.dynamicAllocation.shuffleTracking.timeout": "1",
 # "spark.dynamicAllocation.maxExecutors": "55"
-#  "spark.shuffle.rss.reader.sorterMemoryThreshold": "134217728",
-# "spark.shuffle.rss.reader.sorterBufferSize": "512k",
 
-# "spark.shuffle.rss.writer.bufferSpill": "67108864",
-# "spark.shuffle.rss.mapsPerSplit": "1600",
-
-
-export EMRCLUSTER_NAME=my-ack-vc
-# export EMRCLUSTER_NAME=emr-on-eks-rss
+export EMRCLUSTER_NAME=emr-on-eks-rss
 export AWS_REGION=us-east-1
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export VIRTUAL_CLUSTER_ID=$(aws emr-containers list-virtual-clusters --query "virtualClusters[?name == '$EMRCLUSTER_NAME' && state == 'RUNNING'].id" --output text)
-export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
-# export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
-# export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
-export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
+export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
+export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
 export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
-  --name em66-css \
+  --name em66-3cssnode-dra \
   --execution-role-arn $EMR_ROLE_ARN \
   --release-label emr-6.6.0-latest \
   --job-driver '{
@@ -47,10 +38,12 @@ aws emr-containers start-job-run \
           "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds",
           "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
 
-          "spark.css.cluster.name": "my2css",
-          "spark.css.zookeeper.address": "zk-zookeeper-0.zk-zookeeper-headless.emr.svc.cluster.local:2181,zk-zookeeper-1.zk-zookeeper-headless.emr.svc.cluster.local:2181",
+          "spark.css.cluster.name": "mycss",
+          "spark.css.zookeeper.address": "zookeeper-0.zookeeper-headless.zk.svc.cluster.local:2181,zookeeper-1.zookeeper-headless.zk.svc.cluster.local:2181",
           "spark.shuffle.manager": "org.apache.spark.shuffle.css.CssShuffleManager",
-          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59d"
+          
+          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59",
+          "spark.kubernetes.node.selector.topology.kubernetes.io/zone": "'${AWS_REGION}'b"
       }},
       {
         "classification": "spark-log4j",

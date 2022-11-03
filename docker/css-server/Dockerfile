@@ -12,17 +12,7 @@ RUN curl -sfSL https://github.com/hairyhenderson/gomplate/releases/download/v3.6
     && chmod 755 /usr/local/bin/gomplate
 
 # install maven
-RUN yum update -y && yum install -y git tar hostname procps
-# openssh-server 
-# RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
-# RUN ssh-keygen -A
-# RUN echo "root:centos" | chpasswd
-# RUN sed -i'' -e's/^#PermitRootLogin prohibit-password$/PermitRootLogin yes/' /etc/ssh/sshd_config \
-#         && sed -i'' -e's/^#PasswordAuthentication yes$/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-#         && sed -i'' -e's/^#PermitEmptyPasswords no$/PermitEmptyPasswords yes/' /etc/ssh/sshd_config 
-# EXPOSE 22
-# CMD ["/usr/sbin/sshd", "-D"]
-
+RUN yum update -y && yum install -y git tar
 RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
  && curl -fsSL -o /tmp/apache-maven.tar.gz ${BASE_URL}/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
  && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
