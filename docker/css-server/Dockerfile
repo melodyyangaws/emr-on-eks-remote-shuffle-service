@@ -5,7 +5,7 @@
 FROM amazoncorretto:8 as jdk8
 ARG MAVEN_VERSION=3.8.6
 ARG BASE_URL=https://apache.osuosl.org/maven/maven-3/${MAVEN_VERSION}/binaries
-# SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Install Gomplate
 RUN curl -sfSL https://github.com/hairyhenderson/gomplate/releases/download/v3.6.0/gomplate_linux-amd64 \
       -o /usr/local/bin/gomplate \

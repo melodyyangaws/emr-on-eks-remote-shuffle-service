@@ -1,11 +1,14 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: Copyright 2021 Amazon.com, Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
+# "spark.kubernetes.driver.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/driver-pod-template.yaml",
+# "spark.kubernetes.executor.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/executor-pod-template.yaml",
 
 # "spark.dynamicAllocation.enabled": "true",
 # "spark.dynamicAllocation.shuffleTracking.enabled": "true",
 # "spark.dynamicAllocation.shuffleTracking.timeout": "1",
 # "spark.dynamicAllocation.maxExecutors": "55"
+
 
 # "spark.shuffle.rss.useConnectionPool": "true",
 # "spark.shuffle.rss.writer.asyncFinish": "true",
@@ -21,18 +24,20 @@
 # "spark.metrics.conf.*.sink.prometheusServlet.path": "/metrics/driver/prometheus/",
 # "spark.metrics.conf.master.sink.prometheusServlet.path": "/metrics/master/prometheus/",   
 # "spark.metrics.conf.applications.sink.prometheusServlet.path": "/metrics/applications/prometheus/"
-
-export EMRCLUSTER_NAME=emr-on-eks-rss
+export EMRCLUSTER_NAME=my-ack-vc
+# export EMRCLUSTER_NAME=emr-on-eks-rss
 export AWS_REGION=us-east-1
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export VIRTUAL_CLUSTER_ID=$(aws emr-containers list-virtual-clusters --query "virtualClusters[?name == '$EMRCLUSTER_NAME' && state == 'RUNNING'].id" --output text)
-export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
-export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
+export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
+# export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
+# export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
+export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
 export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
-  --name em66-rss-tpcds-singleSSD \
+  --name em66-rss-tpcds-singleSSD-8thread \
   --execution-role-arn $EMR_ROLE_ARN \
   --release-label emr-6.6.0-latest \
   --job-driver '{
@@ -46,9 +51,6 @@ aws emr-containers start-job-run \
         "classification": "spark-defaults", 
         "properties": {
           "spark.kubernetes.container.image": "'$ECR_URL'/rss-spark-benchmark:emr6.6",
-          "spark.kubernetes.driver.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/driver-pod-template.yaml",
-          "spark.kubernetes.executor.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/executor-pod-template.yaml",
-     
           "spark.executor.memoryOverhead": "2G",
           "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds",
           "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
@@ -57,13 +59,10 @@ aws emr-containers start-job-run \
           "spark.shuffle.rss.writer.bufferSize": "1024",
           "spark.shuffle.rss.writer.maxThreads": "16",
           "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
-          "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338",
+          "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.emr.svc.cluster.local:9338",
           "spark.shuffle.rss.serverSequence.startIndex": "0",
           "spark.shuffle.rss.serverSequence.endIndex": "2",
-
-          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59",
-          "spark.kubernetes.node.selector.topology.kubernetes.io/zone": "'${AWS_REGION}'b"
-          "
+          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59d"
       }},
       {
         "classification": "spark-log4j",

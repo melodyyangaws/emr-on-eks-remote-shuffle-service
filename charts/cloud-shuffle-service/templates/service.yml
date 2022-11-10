@@ -8,7 +8,7 @@ metadata:
 spec:
   ports:
     - name: css-server
-      port: 9099
-      targetPort: 9099
+      port: {{ .Values.ports.shuffleServer }}
+      targetPort: {{ .Values.ports.shuffleServer }}
       protocol: TCP
   selector: {{- .Values.nodeSelector | toYaml | nindent 8 }}

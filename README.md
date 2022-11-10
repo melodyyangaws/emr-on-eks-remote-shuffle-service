@@ -14,18 +14,17 @@ export AWS_REGION=us-east-1
 ./eks_provision.sh
 ```
 which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains the following managed nodegroups which are located in a single AZ within the same [Cluster placment strategy](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html) to achieve the low-latency network performance for the intercommunication between apps and shuffle servers:
-- 1 - [`rss-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L104) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=rss` to host the RSS servers.
+- 1 - [`rss-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L104) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=rss` to host the RSS servers. Only 1 out of 2 SSD disks is mounted to these instances as RSS's rootdir limitation.
 - 2 - [`css-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L128) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=css` to host the CSS servers.
-- 2 - [`c59d`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5d.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings in parallel. The node group can also be used to run TPCDS source data generation job if needed.
+- 2 - [`c59`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings in parallel. The node group can also be used to run TPCDS source data generation job if needed.
 
-## Quick Start: Run shuffle server with pre-built images
+## Quick Start: Run rmeote shuffle server in EMR
 ```bash
 git clone https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service.git
 cd emr-on-eks-remote-shuffle-service.git
 ```
-### 1. Install Uber's RSS server on EKS
-
-#### Helm install RSS
+## **UBER's RSS option**
+### 1. Install RSS server on EKS
 ```bash
 helm install rss ./charts/remote-shuffle-service -n remote-shuffle-service --create-namespace
 
@@ -34,7 +33,7 @@ kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=0
 kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=3
 ```
 ```bash
-#uninstall
+# uninstall
 helm uninstall rss
 kubectl delete namespace remote-shuffle-service
 ```
@@ -56,7 +55,7 @@ volumeGroup: 1000
 
 ```
 #### Mount a high performant disk
-The current RSS version only support a single disk for the storage. 
+Currently, RSS only supports a single disk mount as the shuffle storage. 
 Without specify the `rootdir`, by default, RSS server uses a local EBS root volume to store the shuffle data. However, it is normally too small to handle a large volume of shuffling data. It is recommended to mount a larger size and high performant disk, such as a local nvme SSD disk or [FSx for Lustre storage](https://aws.amazon.com/blogs/big-data/run-apache-spark-with-amazon-emr-on-eks-backed-by-amazon-fsx-for-lustre-storage/).
 ```bash
 volumeMounts:
@@ -73,7 +72,7 @@ command:
   rootdir: "/rss1"
 ```
 
-### 2. Build a custom image with RSS client
+### 2. Build a custom image for RSS client
 Build a custom docker image to include the [Spark benchmark utility](https://github.com/aws-samples/emr-on-eks-benchmark#spark-on-kubernetes-benchmark-utility) tool and a Remote Shuffle Service client
 
 Login to ECR in your account and create a repository called `rss-spark-benchmark`:
@@ -101,13 +100,15 @@ docker build -t $ECR_URL/rss-spark-benchmark:3.2.0 -f docker/rss-oss-client/Dock
 docker push $ECR_URL/rss-spark-benchmark:3.2.0
 ```
 
-### 3. Install ByteDance's CSS server on EKS
+## **ByteDance's CSS option**
+
+### 1. Install server on EKS
 #### Install Zookeeper via Helm Chart
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install zookeeper bitnami/zookeeper -n zk -f charts/zookeeper/values.yaml 
 ```
-#### Helm install CSS
+#### Helm install CSS server
 ```bash
 helm install css ./charts/cloud-shuffle-service -n css --create-namespace
 
@@ -118,13 +119,12 @@ kubectl scale statefulsets css -n css  --replicas=3
 Before the installation, take a look at the configuration [charts/cloud-shuffle-service/values.yaml](./charts/cloud-shuffle-service/values.yaml) and modify it based on your EKS setup.
 
 ```bash
-#uninstall
+# uninstall
 helm uninstall css
 kubectl delete namespace css
 ```
 
-### 4. Build a custom image with CSS client on EMR
-
+### 2. Build a custom image for CSS client
 Login to ECR and create a repository called `css-spark-benchmark`:
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -133,7 +133,7 @@ aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --
 aws ecr create-repository --repository-name css-spark-benchmark --image-scanning-configuration scanOnPush=true
 ```
 
-Build EMR om EKS image
+Build EMR on EKS image
 ```bash
 # The custom image includes Spark Benchmark Untility and CSS client. We use EMR 6.6 (Spark 3.2.0) as the base image
 export SRC_ECR_URL=755674844232.dkr.ecr.us-east-1.amazonaws.com
@@ -143,16 +143,74 @@ docker pull $SRC_ECR_URL/spark/emr-6.6.0:latest
 docker build -t $ECR_URL/css-spark-benchmark:emr6.6 -f docker/css-emr-client/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.6.0:latest .
 docker push $ECR_URL/css-spark-benchmark:emr6.6
 ```
+## **Apache Uniffle RSS option**
 
-### 5. Run Benchmark
+### 1. Install Uniffle Operator on EKS
+#### Build Coordinator and Server docker image
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
 
-#### OPTIONAL: generate the TCP-DS source data
+sh docker/uniffle-server/build.sh --registry $ECR_URL
+```
+#### Make Operator's Webhook & Controller docker images:
+```bash
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+aws ecr create-repository --repository-name rss-webhook --image-scanning-configuration scanOnPush=true
+aws ecr create-repository --repository-name rss-controller --image-scanning-configuration scanOnPush=true
+export VERSION=0.7.0
+make REGISTRY=$ECR_URL docker-build docker-push -f Makefile
+```
+#### Run Uniffle Operator in EKS 
+**TODO: a single-click deployment via helm chart**
+
+```bash
+# Create a new namespace for Apache Uniffle
+kubectl create namespace uniffle
+
+# Create uniffle CRD
+kubectl apply -f operator/example/uniffle-crd.yaml 
+# Create uniffle web hook (update docker image name or tag)
+kubectl apply -f operator/example/uniffle-webhook.yaml
+# Create uniffle controller(update docker image name or tag)
+kubectl apply -f operator/example/uniffle-controller.yaml
+# Create config map
+kubectl apply -f operator/example/configmap.yaml 
+# Start server and coordinators
+kubectl apply -f operator/example/uniffle-operator.yaml
+# validate
+kubectl get all -n uniffle
+```
+### 2. Build a custom image for Uniffle client
+Login to ECR and create a repository called `uniffle-spark-benchmark`:
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+aws ecr create-repository --repository-name uniffle-spark-benchmark --image-scanning-configuration scanOnPush=true
+```
+
+Build EMR on EKS image
+```bash
+# The custom image includes Spark Benchmark Untility and uniffle client. We use EMR 6.6 (Spark 3.2.0) as the base image
+export SRC_ECR_URL=755674844232.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $SRC_ECR_URL
+docker pull $SRC_ECR_URL/spark/emr-6.6.0:latest
+
+docker build -t $ECR_URL/uniffle-spark-benchmark:emr6.6 -f docker/uniffle-emr-client/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.6.0:latest .
+docker push $ECR_URL/uniffle-spark-benchmark:emr6.6
+```
+
+## Run Benchmark
+
+### OPTIONAL: generate the TCP-DS source data
 The job will generate TPCDS source data at 3TB scale to your S3 bucket `s3://'$S3BUCKET'/BLOG_TPCDS-TEST-3T-partitioned/`. Alternatively, directly copy the source data from `s3://blogpost-sparkoneks-us-east-1/blog/BLOG_TPCDS-TEST-3T-partitioned` to your S3.
 ```bash
 kubectl apply -f examples/tpcds-data-generation.yaml
 ```
 
-#### Run EMR on EKS Spark benchmark test:
+### Run EMR on EKS Spark benchmark test:
 Update the docker image name to your ECR URL in the following file, then run:
 ```bash
 ./example/emr6.6-benchmark-rss.sh
@@ -162,7 +220,7 @@ Or
 ./example/emr6.6-benchmark-css.sh
 ```
 
-**NOTE**:in RSS test, keep the server string like `rss-%s` for the config `spark.shuffle.rss.serverSequence.connectionString`, This is intended because `RssShuffleManager` can use it to format the connection string dynamically:
+**NOTE**: in RSS benchmark test, keep the server string like `rss-%s` for the config `spark.shuffle.rss.serverSequence.connectionString`, This is intended because `RssShuffleManager` can use it to format the connection string dynamically:
 ```bash
 "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
 "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
@@ -174,7 +232,7 @@ Or
 The setting`"spark.shuffle.rss.serviceRegistry.type": "serverSequence"` means the metadata will be stored in a cluster of standalone RSS servers.
 
 
-#### OPTIONAL: Run OSS Spark benchmark
+### OPTIONAL: Run OSS Spark benchmark
 NOTE: some queries may not be able to complete, due to the limited resources alloated to run such a large scale test:
 Update the docker image name to your ECR URL, then run
 ```bash
