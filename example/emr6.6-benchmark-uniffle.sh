@@ -18,7 +18,7 @@ export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
-  --name em66-3rssserver-uniffle \
+  --name em66-uniffle-sparkconfg-poolsize \
   --execution-role-arn $EMR_ROLE_ARN \
   --release-label emr-6.6.0-latest \
   --job-driver '{
@@ -35,19 +35,26 @@ aws emr-containers start-job-run \
           "spark.executor.memoryOverhead": "2G",
           "spark.kubernetes.executor.podNamePrefix": "emr-eks-nopod",
           "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
-
+          
+          "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
           "spark.rss.coordinator.quorum": "rss-coordinator-uniffle-rss-0.uniffle.svc.cluster.local:19997,rss-coordinator-uniffle-rss-1.uniffle.svc.cluster.local:19997",
           "spark.rss.storage.type": "MEMORY_LOCALFILE",
-          "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
-          "spark.kubernetes.driver.node.selector.eks.amazonaws.com/nodegroup": "c59",
-          "spark.kubernetes.driver.node.selector.topology.kubernetes.io/zone": "us-east-1b",
-          "spark.kubernetes.executor.node.selector.eks.amazonaws.com/nodegroup": "c59",
-          "spark.kubernetes.executor.node.selector.topology.kubernetes.io/zone": "us-east-1b"
+          "spark.rss.remote.storage.path": "/rss1/rssdata,/rss2/rssdata",
+          "spark.rss.estimate.task.concurrency.enabled": "true",
+          "spark.rss.client.shuffle.data.distribution.type": "LOCAL_ORDER",
+          "spark.rss.estimate.task.concurrency.dynamic.factor": "1.0",
+          "spark.rss.client.io.compression.codec": "SNAPPY",
+          "spark.rss.data.replica": "1",
+          "spark.rss.data.replica.write": "1",
+          "spark.rss.data.replica.read": "1",
+
+          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59",
+          "spark.kubernetes.node.selector.topology.kubernetes.io/zone":"us-east-1b"
       }},
       {
         "classification": "spark-log4j",
         "properties": {
-          "log4j.rootCategory":"ERROR, console"
+          "log4j.rootCategory":"DEBUG, console"
         }
       }
     ],

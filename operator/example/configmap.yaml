@@ -23,11 +23,12 @@ metadata:
   namespace: uniffle
 data:
   coordinator.conf: |-
-    rss.coordinator.app.expired 60000
+    rss.coordinator.app.expired 1200000
     rss.coordinator.exclude.nodes.file.path /data/rssadmin/rss/coo
-    rss.coordinator.server.heartbeat.timeout 30000
+    rss.coordinator.server.heartbeat.timeout 300000
     rss.jetty.http.port 19996
     rss.rpc.server.port 19997
+    rss.coordinator.select.partition.strategy CONTINUOUS
   log4j.properties: |-
     log4j.rootCategory=INFO, RollingAppender
     log4j.appender.console=org.apache.log4j.ConsoleAppender
@@ -42,27 +43,28 @@ data:
     log4j.appender.RollingAppender.layout=org.apache.log4j.PatternLayout
     log4j.appender.RollingAppender.layout.ConversionPattern=[%p] %d %t %c{1} %M - %m%n
   server.conf: |-
-    rss.coordinator.quorum rss-coordinator-uniffle-rss-0:19997,rss-coordinator-uniffle-rss-1:19997
+    rss.coordinator.quorum rss-coordinator-uniffle-rss-0.uniffle.svc.cluster.local:19997,rss-coordinator-uniffle-rss-1.uniffle.svc.cluster.local:19997
     rss.jetty.http.port 19996
     rss.rpc.executor.size 500
     rss.rpc.message.max.size 1073741824
     rss.rpc.server.port 19997
+    rss.jetty.http.idle.timeout 300000
     rss.server.app.expired.withoutHeartbeat 120000
     rss.server.buffer.capacity 60g
     rss.server.commit.timeout 600000
-    rss.server.disk.capacity 3g
+    rss.server.disk.capacity 3t
     rss.server.event.size.threshold.l1 128m
     rss.server.event.size.threshold.l2 192m
     rss.server.event.size.threshold.l3 256m
     rss.server.flush.cold.storage.threshold.size 128m
-    rss.server.flush.thread.alive 6
-    rss.server.flush.threadPool.size 12
+    rss.server.flush.thread.alive 2
+    rss.server.flush.threadPool.size 6
     rss.server.hadoop.dfs.client.socket-timeout 15000
-    rss.server.hadoop.dfs.replication 2
-    rss.server.hdfs.base.path hdfs://localhost:9000
+    rss.server.hadoop.dfs.replication 1
+    # rss.server.hdfs.base.path hdfs://localhost:9000
     rss.server.health.check.enable false
     rss.server.heartbeat.interval 10000
-    rss.server.heartbeat.timeout 60000
+    rss.server.heartbeat.timeout 30000
     rss.server.memory.shuffle.highWaterMark.percentage 70.0
     rss.server.memory.shuffle.lowWaterMark.percentage 10.0
     rss.server.pending.event.timeoutSec 600

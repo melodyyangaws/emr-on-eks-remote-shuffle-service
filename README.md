@@ -4,7 +4,13 @@ Remote Shuffle Service provides the capability for Apache Spark applications to 
 on remote servers. See more details on Spark community document: 
 [[SPARK-25299][DISCUSSION] Improving Spark Shuffle Reliability](https://docs.google.com/document/d/1uCkzGGVG17oGC6BJ75TpzLAZNorvrAU3FRd2X-rVHSM/edit?ts=5e3c57b8).
 
-The high level design for Uber's Remote Shuffle Service (RSS) can be found [here](https://github.com/uber/RemoteShuffleService/blob/master/docs/server-high-level-design.md), ByteDance's Cloud Shuffle Service (CSS) can be found [here](https://github.com/bytedance/CloudShuffleService), OPPO's Shuttle can be found [here](https://github.com/cubefs/shuttle/blob/master/docs/server-high-level-design.md)
+The high level design for Uber's Remote Shuffle Service (RSS) can be found [here](https://github.com/uber/RemoteShuffleService/blob/master/docs/server-high-level-design.md), ByteDance's Cloud Shuffle Service (CSS) can be found [here](https://github.com/bytedance/CloudShuffleService), Tecent's Apache Uniffle can be found [here](https://uniffle.apache.org/docs/intro).OPPO's Shuttle can be found [here](https://github.com/cubefs/shuttle/blob/master/docs/server-high-level-design.md)
+
+# Example RSS setup instructions:
+* [1. Install Uber's RSS](#1-install-rss-server-on-eks) 
+* [2. Install ByteDance's CSS](#1-install-css-server-on-eks) 
+* [3. Install Apache Uniffle (Tencent)](#1-install-uniffle-operator-on-eks)
+
 
 ## Infra Provision
 If you do not have your own environment to run Spark, run the command. Change the region if needed.
@@ -102,7 +108,7 @@ docker push $ECR_URL/rss-spark-benchmark:3.2.0
 
 ## **ByteDance's CSS option**
 
-### 1. Install server on EKS
+### 1. Install CSS server on EKS
 #### Install Zookeeper via Helm Chart
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -146,39 +152,45 @@ docker push $ECR_URL/css-spark-benchmark:emr6.6
 ## **Apache Uniffle RSS option**
 
 ### 1. Install Uniffle Operator on EKS
+Ensure you have [`wget`](https://formulae.brew.sh/formula/wget) and [`go 1.16`](https://formulae.brew.sh/formula/go@1.16) installed.
+
 #### Build Coordinator and Server docker image
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
 
-sh docker/uniffle-server/build.sh --registry $ECR_URL
+cd docker/uniffle-server
+export UNIFFLE_VERSION="0.7.0-snapshot"
+sh build.sh --hadoop-version 3.2.1 --registry $ECR_URL
 ```
 #### Make Operator's Webhook & Controller docker images:
 ```bash
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
 aws ecr create-repository --repository-name rss-webhook --image-scanning-configuration scanOnPush=true
 aws ecr create-repository --repository-name rss-controller --image-scanning-configuration scanOnPush=true
-export VERSION=0.7.0
+
+cd ../../operator
+export VERSION="0.7.0-snapshot"
+export GOPROXY="https://goproxy.io" #other proxy options are "https://gocenter.io" or "direct"
 make REGISTRY=$ECR_URL docker-build docker-push -f Makefile
 ```
 #### Run Uniffle Operator in EKS 
 **TODO: a single-click deployment via helm chart**
-
 ```bash
 # Create a new namespace for Apache Uniffle
 kubectl create namespace uniffle
 
 # Create uniffle CRD
-kubectl apply -f operator/example/uniffle-crd.yaml 
-# Create uniffle web hook (update docker image name or tag)
-kubectl apply -f operator/example/uniffle-webhook.yaml
-# Create uniffle controller(update docker image name or tag)
-kubectl apply -f operator/example/uniffle-controller.yaml
+kubectl apply -f example/uniffle-crd.yaml 
+# Update docker image name and tag, then create webhook
+kubectl apply -f example/uniffle-webhook.yaml
+# Update docker image name and tag, then create controller
+kubectl apply -f example/uniffle-controller.yaml
 # Create config map
-kubectl apply -f operator/example/configmap.yaml 
-# Start server and coordinators
-kubectl apply -f operator/example/uniffle-operator.yaml
+kubectl apply -f example/configmap.yaml 
+# Update docker image name and tag, then start server and coordinators
+kubectl apply -f example/uniffle-operator.yaml
 # validate
 kubectl get all -n uniffle
 ```
@@ -213,14 +225,17 @@ kubectl apply -f examples/tpcds-data-generation.yaml
 ### Run EMR on EKS Spark benchmark test:
 Update the docker image name to your ECR URL in the following file, then run:
 ```bash
+# go to the project root directory
+cd emr-on-eks-remote-shuffle-service
+# run the performance test with Uber's RSS
 ./example/emr6.6-benchmark-rss.sh
-```
-Or
-```bash
+# Or Bytedance's CSS
 ./example/emr6.6-benchmark-css.sh
+# Or Tecent's Apache Uniffle
+./example/emr6.6-benchmark-uniffle.sh
 ```
 
-**NOTE**: in RSS benchmark test, keep the server string like `rss-%s` for the config `spark.shuffle.rss.serverSequence.connectionString`, This is intended because `RssShuffleManager` can use it to format the connection string dynamically:
+**NOTE**: in Uber's RSS benchmark test, keep the server string like `rss-%s` for the config `spark.shuffle.rss.serverSequence.connectionString`, This is intended because `RssShuffleManager` can use it to format the connection string dynamically:
 ```bash
 "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
 "spark.shuffle.rss.serviceRegistry.type": "serverSequence",

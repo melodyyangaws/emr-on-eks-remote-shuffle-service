@@ -78,21 +78,22 @@ if [ ! -e "$HADOOP_FILE" ]; \
   else echo "${HADOOP_FILE} has been downloaded"; \
 fi
 
-RSS_DIR=../../..
-cd $RSS_DIR || exit
-RSS_VERSION=$(mvn help:evaluate -Dexpression=project.version 2>/dev/null | grep -v "INFO" | grep -v "WARNING" | tail -n 1)
-RSS_FILE=rss-${RSS_VERSION}.tgz
-if [ ! -e "$RSS_FILE" ]; \
-  then sh ./build_distribution.sh; \
-  else echo "$RSS_FILE has been built"; \
-fi
-cd "$OLDPWD" || exit
-cp "$RSS_DIR/$RSS_FILE" .
+# RSS_DIR=../../..
+# cd $RSS_DIR || exit
+# RSS_VERSION=$(mvn help:evaluate -Dexpression=project.version 2>/dev/null | grep -v "INFO" | grep -v "WARNING" | tail -n 1)
+RSS_VERSION=$UNIFFLE_VERSION
+# RSS_FILE=rss-${RSS_VERSION}.tgz
+# if [ ! -e "$RSS_FILE" ]; \
+#   then sh ./build_distribution.sh; \
+#   else echo "$RSS_FILE has been built"; \
+# fi
+# cd "$OLDPWD" || exit
+# cp "$RSS_DIR/$RSS_FILE" .
 
-GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-GIT_COMMIT=$(git describe --dirty --always --tags | sed 's/-/./g')
-echo "image version: ${IMAGE_VERSION:=$RSS_VERSION-$GIT_COMMIT}"
-IMAGE=$REGISTRY/rss-server:$IMAGE_VERSION
+# GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# GIT_COMMIT=$(git describe --dirty --always --tags | sed 's/-/./g')
+# echo "image version: ${IMAGE_VERSION:=$RSS_VERSION-$GIT_COMMIT}"
+IMAGE=$REGISTRY/uniffle-server:$RSS_VERSION
 echo "building image: $IMAGE"
 docker build -t "$IMAGE" \
              --build-arg RSS_VERSION="$RSS_VERSION" \
@@ -104,3 +105,4 @@ docker build -t "$IMAGE" \
 
 echo "pushing image: $IMAGE"
 docker push "$IMAGE"
+# rm *.tar.gz

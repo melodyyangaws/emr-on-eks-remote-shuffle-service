@@ -1,11 +1,4 @@
 mode: set
-github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:50.72,52.2 1 0
-github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:55.73,87.2 9 1
-github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:106.54,109.90 3 0
-github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:112.2,114.59 2 0
-github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:117.2,117.12 1 0
-github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:109.90,111.3 1 0
-github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:114.59,116.3 1 0
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/pod.go:40.113,42.70 2 0
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/pod.go:47.2,49.48 2 0
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/pod.go:54.2,56.16 3 0
@@ -83,6 +76,13 @@ github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspe
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/rss.go:150.60,153.3 1 1
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/rss.go:154.48,156.3 1 1
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/rss.go:159.93,161.3 1 1
+github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:50.72,52.2 1 0
+github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:55.73,87.2 9 1
+github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:106.54,109.90 3 0
+github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:112.2,114.59 2 0
+github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:117.2,117.12 1 0
+github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:109.90,111.3 1 0
+github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/inspector/inspector.go:114.59,116.3 1 0
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/manager.go:56.63,58.2 1 0
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/manager.go:61.64,66.36 2 1
 github.com/apache/incubator-uniffle/deploy/kubernetes/operator/pkg/webhook/manager.go:72.2,77.16 2 1
