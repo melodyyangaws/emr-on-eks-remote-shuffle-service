@@ -38,7 +38,7 @@ spec:
     excludeNodesFilePath: "/data/rssadmin/rss/coo/exclude_nodes"
     securityContext:
       runAsUser: 999
-      fsGroup: 999
+      fsGroup: 1000
     logHostPath: "/data/logs/rss/coordinator"
     hostPathMounts:
       /data/logs/rss/coordinator: /data/rssadmin/rss/logs 
@@ -55,7 +55,7 @@ spec:
     configDir: "/data/rssadmin/rss/conf"
     securityContext:
       runAsUser: 999
-      fsGroup: 999
+      fsGroup: 1000
     logHostPath: "/data/logs/rss/shuffle-server"
     hostPathMounts:
       /data/logs/rss/shuffle-server: /data/rssadmin/rss/logs

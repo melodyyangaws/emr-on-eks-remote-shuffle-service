@@ -6,7 +6,7 @@ on remote servers. See more details on Spark community document:
 
 The high level design for Uber's Remote Shuffle Service (RSS) can be found [here](https://github.com/uber/RemoteShuffleService/blob/master/docs/server-high-level-design.md), ByteDance's Cloud Shuffle Service (CSS) can be found [here](https://github.com/bytedance/CloudShuffleService), Tecent's Apache Uniffle can be found [here](https://uniffle.apache.org/docs/intro).OPPO's Shuttle can be found [here](https://github.com/cubefs/shuttle/blob/master/docs/server-high-level-design.md)
 
-# Example RSS setup instructions:
+# Setup instructions:
 * [1. Install Uber's RSS](#1-install-rss-server-on-eks) 
 * [2. Install ByteDance's CSS](#1-install-css-server-on-eks) 
 * [3. Install Apache Uniffle (Tencent)](#1-install-uniffle-operator-on-eks)
@@ -100,9 +100,9 @@ docker build -t $ECR_URL/rss-spark-benchmark:emr6.6 -f docker/rss-emr-client/Doc
 docker push $ECR_URL/rss-spark-benchmark:emr6.6
 ```
 
-Build an OSS Spark docker image:
+Build an OSS Spark docker image (OPTIONAL):
 ```bash
-docker build -t $ECR_URL/rss-spark-benchmark:3.2.0 -f docker/rss-oss-client/Dockerfile --build-arg SPARK_BASE_IMAGE=public.ecr.aws/myang-poc/spark:3.2.0_hadoop_3.3.1 .
+docker build -t $ECR_URL/rss-spark-benchmark:3.2.0 -f docker/rss-oss-client/Dockerfile
 docker push $ECR_URL/rss-spark-benchmark:3.2.0
 ```
 
@@ -115,6 +115,8 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install zookeeper bitnami/zookeeper -n zk -f charts/zookeeper/values.yaml 
 ```
 #### Helm install CSS server
+Before the installation, take a look at the configuration [charts/cloud-shuffle-service/values.yaml](./charts/cloud-shuffle-service/values.yaml) and modify it based on your EKS setup.
+
 ```bash
 helm install css ./charts/cloud-shuffle-service -n css --create-namespace
 
@@ -122,7 +124,6 @@ helm install css ./charts/cloud-shuffle-service -n css --create-namespace
 kubectl scale statefulsets css -n css  --replicas=0
 kubectl scale statefulsets css -n css  --replicas=3
 ```
-Before the installation, take a look at the configuration [charts/cloud-shuffle-service/values.yaml](./charts/cloud-shuffle-service/values.yaml) and modify it based on your EKS setup.
 
 ```bash
 # uninstall
@@ -172,7 +173,6 @@ aws ecr create-repository --repository-name rss-controller --image-scanning-conf
 
 cd ../../operator
 export VERSION="0.7.0-snapshot"
-export GOPROXY="https://goproxy.io" #other proxy options are "https://gocenter.io" or "direct"
 make REGISTRY=$ECR_URL docker-build docker-push -f Makefile
 ```
 #### Run Uniffle Operator in EKS 

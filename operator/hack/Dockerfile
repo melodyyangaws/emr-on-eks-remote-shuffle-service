@@ -18,7 +18,6 @@
 # Build the binary
 FROM golang:1.16 as builder
 
-ENV GOPROXY direct
 ARG MODULE
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -26,6 +25,7 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
+ARG GOPROXY=direct 
 RUN go mod download
 
 # Copy the go source

@@ -39,7 +39,7 @@ USER hadoop:hadoop
 # compile RSS server
 RUN git clone https://github.com/apache/incubator-uniffle.git /tmp/uniffle
 WORKDIR /tmp/uniffle
-COPY build_distribution.sh .
+# COPY build_distribution.sh .
 RUN ./build_distribution.sh --spark3-profile 'spark3.2.0'
 
 RUN cp rss-*.tgz /data/rssadmin \
