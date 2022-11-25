@@ -66,4 +66,4 @@ Thumbs.db
 ##########################
 .ipynb_checkpoints/
 
-*/hadoop-*.tar.gz
+*/*/hadoop-*.tar.gz
