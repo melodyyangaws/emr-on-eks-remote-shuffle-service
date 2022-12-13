@@ -21,26 +21,29 @@ export AWS_REGION=us-east-1
 ```
 which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains the following managed nodegroups which are located in a single AZ within the same [Cluster placment strategy](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html) to achieve the low-latency network performance for the intercommunication between apps and shuffle servers:
 - 1 - [`rss-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L104) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=rss` to host the RSS servers. Only 1 out of 2 SSD disks is mounted to these instances as RSS's rootdir limitation.
-- 2 - [`css-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L128) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=css` to host the CSS servers.
+- 2 - [`css-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L128) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=css` to host the CSS and Uniffle servers.
 - 2 - [`c59`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings in parallel. The node group can also be used to run TPCDS source data generation job if needed.
 
 ## Quick Start: Run rmeote shuffle server in EMR
 ```bash
 git clone https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service.git
-cd emr-on-eks-remote-shuffle-service.git
+cd emr-on-eks-remote-shuffle-service
 ```
 ## **UBER's RSS option**
 ### 1. Install RSS server on EKS
 ```bash
 helm install rss ./charts/remote-shuffle-service -n remote-shuffle-service --create-namespace
-
+# check progress
+kubectl get all -n remote-shuffle-service
+```
+```
 # OPTIONAL: scale up or scale down the Shuffle server
 kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=0
 kubectl scale statefulsets rss -n remote-shuffle-service  --replicas=3
 ```
 ```bash
 # uninstall
-helm uninstall rss
+helm uninstall rss -n remote-shuffle-service
 kubectl delete namespace remote-shuffle-service
 ```
 Before the installation, take a look at the [charts/remote-shuffle-service/values.yaml](./charts/remote-shuffle-service/values.yaml). There are few configurations need to pay attention to: 
@@ -112,14 +115,22 @@ docker push $ECR_URL/rss-spark-benchmark:3.2.0
 #### Install Zookeeper via Helm Chart
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install zookeeper bitnami/zookeeper -n zk -f charts/zookeeper/values.yaml 
+helm install zookeeper bitnami/zookeeper -n zk -f charts/zookeeper/values.yaml --create-namespace
+```
+```
+# uninstall zookeeper
+helm uninstall zookeeper -n zk
+kubectl delete pvc --all -n zk
 ```
 #### Helm install CSS server
 Before the installation, take a look at the configuration [charts/cloud-shuffle-service/values.yaml](./charts/cloud-shuffle-service/values.yaml) and modify it based on your EKS setup.
 
 ```bash
 helm install css ./charts/cloud-shuffle-service -n css --create-namespace
-
+# check progress
+kubectl get all -n css
+```
+```
 # OPTIONAL: scale up or scale down the Shuffle server
 kubectl scale statefulsets css -n css  --replicas=0
 kubectl scale statefulsets css -n css  --replicas=3
@@ -149,6 +160,9 @@ docker pull $SRC_ECR_URL/spark/emr-6.6.0:latest
 
 docker build -t $ECR_URL/css-spark-benchmark:emr6.6 -f docker/css-emr-client/Dockerfile --build-arg SPARK_BASE_IMAGE=$SRC_ECR_URL/spark/emr-6.6.0:latest .
 docker push $ECR_URL/css-spark-benchmark:emr6.6
+
+docker build -t $ECR_URL/uniffle-spark-benchmark:3.2.0 -f docker/uniffle-oss-client/Dockerfile .
+docker push $ECR_URL/uniffle-spark-benchmark:3.2.0
 ```
 ## **Apache Uniffle RSS option**
 
@@ -223,6 +237,7 @@ kubectl apply -f examples/tpcds-data-generation.yaml
 ```
 
 ### Run EMR on EKS Spark benchmark test:
+All of benchmark jobs will run in the single namespace `emr`.
 Update the docker image name to your ECR URL in the following file, then run:
 ```bash
 # go to the project root directory
@@ -233,6 +248,9 @@ cd emr-on-eks-remote-shuffle-service
 ./example/emr6.6-benchmark-css.sh
 # Or Tecent's Apache Uniffle
 ./example/emr6.6-benchmark-uniffle.sh
+# check job progress
+kubectl get po -n emr
+kubectl logs DRIVER_POD_NAM -n emr spark-kubernetes-driver
 ```
 
 **NOTE**: in Uber's RSS benchmark test, keep the server string like `rss-%s` for the config `spark.shuffle.rss.serverSequence.connectionString`, This is intended because `RssShuffleManager` can use it to format the connection string dynamically:

@@ -9,7 +9,6 @@
 # "spark.dynamicAllocation.shuffleTracking.timeout": "1",
 # "spark.dynamicAllocation.maxExecutors": "55"
 
-
 # "spark.shuffle.rss.useConnectionPool": "true",
 # "spark.shuffle.rss.writer.asyncFinish": "true",
 #  "spark.ui.prometheus.enabled": "true",
@@ -24,20 +23,17 @@
 # "spark.metrics.conf.*.sink.prometheusServlet.path": "/metrics/driver/prometheus/",
 # "spark.metrics.conf.master.sink.prometheusServlet.path": "/metrics/master/prometheus/",   
 # "spark.metrics.conf.applications.sink.prometheusServlet.path": "/metrics/applications/prometheus/"
-export EMRCLUSTER_NAME=my-ack-vc
-# export EMRCLUSTER_NAME=emr-on-eks-rss
+export EMRCLUSTER_NAME=emr-on-eks-rss
 export AWS_REGION=us-east-1
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export VIRTUAL_CLUSTER_ID=$(aws emr-containers list-virtual-clusters --query "virtualClusters[?name == '$EMRCLUSTER_NAME' && state == 'RUNNING'].id" --output text)
-export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
-# export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
-# export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
-export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
+export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
+export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
 export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
   --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
-  --name em66-rss-tpcds-singleSSD-8thread \
+  --name em66-3rss \
   --execution-role-arn $EMR_ROLE_ARN \
   --release-label emr-6.6.0-latest \
   --job-driver '{
@@ -52,17 +48,19 @@ aws emr-containers start-job-run \
         "properties": {
           "spark.kubernetes.container.image": "'$ECR_URL'/rss-spark-benchmark:emr6.6",
           "spark.executor.memoryOverhead": "2G",
-          "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds",
+          "spark.kubernetes.executor.podNamePrefix": "emr-eks-tpcds-rss",
           "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
 
           "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
           "spark.shuffle.rss.writer.bufferSize": "1024",
           "spark.shuffle.rss.writer.maxThreads": "16",
           "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
-          "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.emr.svc.cluster.local:9338",
+          "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338",
           "spark.shuffle.rss.serverSequence.startIndex": "0",
           "spark.shuffle.rss.serverSequence.endIndex": "2",
-          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59d"
+
+          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59",
+          "spark.kubernetes.node.selector.topology.kubernetes.io/zone": "us-east-1a"
       }},
       {
         "classification": "spark-log4j",

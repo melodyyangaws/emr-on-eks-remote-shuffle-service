@@ -34,7 +34,7 @@ data:
   log4j.properties: |-
     log4j.logger.io.grpc.netty.NettyServerHandler=ALL
     log4j.logger.io.grpc.netty.NettyClientHandler=ALL
-    log4j.rootCategory=debug, RollingAppender
+    log4j.rootCategory=INFO, RollingAppender
     log4j.appender.console=org.apache.log4j.ConsoleAppender
     log4j.appender.console.Threshold=INFO
     log4j.appender.console.target=System.err
@@ -49,22 +49,22 @@ data:
   server.conf: |-
     rss.coordinator.quorum rss-coordinator-uniffle-rss-0:19997,rss-coordinator-uniffle-rss-1:19997
     rss.jetty.http.port 19996
-    rss.rpc.server.port 19997
     rss.rpc.executor.size 500
     rss.rpc.message.max.size 1073741824
-    rss.jetty.http.idle.timeout 300000
+    rss.rpc.server.port 19997
     rss.server.app.expired.withoutHeartbeat 120000
     rss.server.buffer.capacity 60g
     rss.server.commit.timeout 600000
-    rss.server.disk.capacity 3t
+    rss.server.disk.capacity 3g
     rss.server.event.size.threshold.l1 128m
     rss.server.event.size.threshold.l2 192m
     rss.server.event.size.threshold.l3 256m
     rss.server.flush.cold.storage.threshold.size 128m
-    rss.server.flush.thread.alive 2
-    rss.server.flush.threadPool.size 6
+    rss.server.flush.thread.alive 6
+    rss.server.flush.threadPool.size 12
     rss.server.hadoop.dfs.client.socket-timeout 15000
-    rss.server.hadoop.dfs.replication 1
+    rss.server.hadoop.dfs.replication 2
+    rss.server.hdfs.base.path /rss1/rssdata,/rss2/rssdata
     rss.server.health.check.enable false
     rss.server.heartbeat.interval 10000
     rss.server.heartbeat.timeout 60000

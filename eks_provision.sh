@@ -8,21 +8,18 @@
 # export AWS_REGION=us-east-1
 export EMR_NAMESPACE=emr
 export OSS_NAMESPACE=oss
-export EKS_VERSION=1.21
+export EKS_VERSION=1.22
 export EMRCLUSTER_NAME=emr-on-$EKSCLUSTER_NAME
-# export EMRCLUSTER_NAME=my-ack-vc
 export ROLE_NAME=${EMRCLUSTER_NAME}-execution-role
-# export ROLE_NAME=ack-emrcontainers-jobexecution-role
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export S3TEST_BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
-# export S3TEST_BUCKET=emr-on-eks-nvme-021732063925-us-east-1
 
 echo "==============================================="
 echo "  setup IAM roles ......"
 echo "==============================================="
 
 # create S3 bucket for application
-if [ $AWS_REGION=="us-east-1" ]; then
+if [ $AWS_REGION == "us-east-1" ]; then
   aws s3api create-bucket --bucket $S3TEST_BUCKET --region $AWS_REGION
 else
   aws s3api create-bucket --bucket $S3TEST_BUCKET --region $AWS_REGION --create-bucket-configuration LocationConstraint=$AWS_REGION
@@ -70,9 +67,10 @@ aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::$ACC
 echo "===================================================="
 echo "  Create a Cluster placement group for EKS ......"
 echo "===================================================="
-aws ec2 create-placement-group --group-name mytestgroup --strategy cluster \
+aws ec2 create-placement-group --group-name $EKSCLUSTER_NAME-agroup --strategy cluster \
   --tag-specifications 'ResourceType=placement-group,Tags={Key=app,Value=sparktest}'
-
+aws ec2 create-placement-group --group-name $EKSCLUSTER_NAME-bgroup --strategy cluster \
+  --tag-specifications 'ResourceType=placement-group,Tags={Key=app,Value=sparktest}'
 echo "==============================================="
 echo "  Create EKS Cluster ......"
 echo "==============================================="
@@ -102,7 +100,7 @@ iam:
     roleName: eksctl-cluster-autoscaler-role
 managedNodeGroups: 
   - name: rss-i3en
-    availabilityZones: ["${AWS_REGION}b"] 
+    availabilityZones: ["${AWS_REGION}a"] 
     preBootstrapCommands:
       # - "sudo yum -y install mdadm"
       # - "IDX=0;for DEV in /dev/nvme[1-9]n1; do IDX=\$((\${IDX} + 1)); done; sudo mdadm --create --verbose /dev/md0 --level=0 --name=MY_RAID --chunk=64 --raid-devices=\${IDX} /dev/nvme[1-9]n1"
@@ -118,7 +116,7 @@ managedNodeGroups:
     desiredCapacity: 1
     maxSize: 20
     placement:
-      groupName: mytestgroup
+      groupName: $EKSCLUSTER_NAME-bgroup
     labels:
       app: rss
     tags:
@@ -138,7 +136,7 @@ managedNodeGroups:
     desiredCapacity: 1
     maxSize: 20
     placement:
-      groupName: mytestgroup
+      groupName: $EKSCLUSTER_NAME-agroup
     labels:
       app: css
     tags:
@@ -148,11 +146,12 @@ managedNodeGroups:
   - name: c59
     availabilityZones: ["${AWS_REGION}a","${AWS_REGION}b"] 
     instanceType: c5.9xlarge
-    # ebs optimization is enabled by default
+    preBootstrapCommands:
+      - "sudo systemctl restart docker --no-block"
     volumeSize: 50
     volumeType: gp3
-    minSize: 1
-    desiredCapacity: 1
+    minSize: 2
+    desiredCapacity: 2
     maxSize: 50
     labels:
       app: sparktest
@@ -194,6 +193,7 @@ echo "==============================================="
 echo "  Configure EKS Cluster ......"
 echo "==============================================="
 # Map the s3 bucket environment variable to EKS cluster
+kubectl create namespace $OSS_NAMESPACE
 kubectl create -n $OSS_NAMESPACE configmap special-config --from-literal=codeBucket=$S3TEST_BUCKET
 
 # Install k8s metrics server
@@ -201,7 +201,7 @@ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/late
 
 # Install Spark-Operator for the OSS Spark test
 helm repo add spark-operator https://googlecloudplatform.github.io/spark-on-k8s-operator
-helm install -n $OSS_NAMESPACE spark-operator spark-operator/spark-operator --version 1.1.6 \
+helm install -n $OSS_NAMESPACE spark-operator spark-operator/spark-operator --version 1.1.26 \
   --set serviceAccounts.spark.create=false --set metrics.enable=false --set webhook.enable=true --set webhook.port=443 --debug
 
 # Install Cluster Autoscaler that automatically adjusts the number of nodes in EKS
@@ -211,7 +211,7 @@ autoDiscovery:
     clusterName: $EKSCLUSTER_NAME
 awsRegion: $AWS_REGION
 image:
-    tag: v1.21.1
+    tag: v1.22.2
 podAnnotations:
     cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 extraArgs:
@@ -228,9 +228,9 @@ helm repo add autoscaler https://kubernetes.github.io/autoscaler
 helm install nodescaler autoscaler/cluster-autoscaler --namespace kube-system --values /tmp/autoscaler-config.yaml --debug
 
 # echo "==========================================================================================="
-# echo "  Patch k8s user permission for PVC, if eksctl version is < 0.111.0 , EMR < 6.8 ......"
+# echo "  Patch k8s user permission for PVC only if eksctl version is < 0.111.0 or EMR < 6.8 ......"
 # echo "==========================================================================================="
-curl -o rbac_pactch.py https://raw.githubusercontent.com/aws/aws-emr-containers-best-practices/main/tools/pvc-permission/rbac_patch.py
-python3 rbac_pactch.py -n $EMR_NAMESPACE -p
+# curl -o rbac_pactch.py https://raw.githubusercontent.com/aws/aws-emr-containers-best-practices/main/tools/pvc-permission/rbac_patch.py
+# python3 rbac_pactch.py -n $EMR_NAMESPACE -p
 
 echo "Finished, proceed to submitting a job"

@@ -2,9 +2,9 @@
 # // SPDX-License-Identifier: MIT-0
 apiVersion: v1
 kind: Pod
-spec:
+spec:    
   nodeSelector:
-    app: sparktest        
+    app: sparktest
   volumes:
     - name: spark-local-dir-1
       hostPath:

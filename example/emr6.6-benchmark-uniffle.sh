@@ -1,19 +1,18 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: Copyright 2021 Amazon.com, Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
-# "spark.kubernetes.driver.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/driver-pod-template.yaml",
-# "spark.kubernetes.executor.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/executor-pod-template.yaml",
+            # "spark.kubernetes.node.selector.topology.kubernetes.io/zone":"us-east-1b"
+          #       "spark.kubernetes.driver.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/driver-pod-template.yaml",
+          # "spark.kubernetes.executor.podTemplateFile": "s3://'$S3BUCKET'/app_code/pod-template/executor-pod-template.yaml",
 
-          # "spark.kubernetes.node.selector.topology.kubernetes.io/zone":"us-east-1b"
-export EMRCLUSTER_NAME=my-ack-vc
-# export EMRCLUSTER_NAME=emr-on-eks-rss
+export EMRCLUSTER_NAME=emr-on-eks-rss
 export AWS_REGION=us-east-1
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export VIRTUAL_CLUSTER_ID=$(aws emr-containers list-virtual-clusters --query "virtualClusters[?name == '$EMRCLUSTER_NAME' && state == 'RUNNING'].id" --output text)
-export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
-# export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
-# export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
-export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
+# export EMR_ROLE_ARN=arn:aws:iam::021732063925:role/ack-emrcontainers-jobexecution-role
+export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
+export S3BUCKET=${EMRCLUSTER_NAME}-${ACCOUNTID}-${AWS_REGION}
+# export S3BUCKET=emr-on-eks-nvme-$ACCOUNTID-$AWS_REGION
 export ECR_URL="$ACCOUNTID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 aws emr-containers start-job-run \
@@ -31,31 +30,32 @@ aws emr-containers start-job-run \
       {
         "classification": "spark-defaults", 
         "properties": {
-          "spark.kubernetes.container.image": "'$ECR_URL'/uniffle-spark-benchmark:emr6.6_nov",
+
+          "spark.kubernetes.container.image": "'$ECR_URL'/uniffle-spark-benchmark:emr6.6",
           "spark.executor.memoryOverhead": "2G",
-          "spark.kubernetes.executor.podNamePrefix": "emr-eks-nopod",
+          "spark.kubernetes.executor.podNamePrefix": "emr-eks-uniffle",
           "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
           
           "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
           "spark.rss.coordinator.quorum": "rss-coordinator-uniffle-rss-0.uniffle.svc.cluster.local:19997,rss-coordinator-uniffle-rss-1.uniffle.svc.cluster.local:19997",
           "spark.rss.storage.type": "MEMORY_LOCALFILE",
           "spark.rss.remote.storage.path": "/rss1/rssdata,/rss2/rssdata",
-          "spark.rss.estimate.task.concurrency.enabled": "true",
-          "spark.rss.client.shuffle.data.distribution.type": "LOCAL_ORDER",
-          "spark.rss.estimate.task.concurrency.dynamic.factor": "1.0",
-          "spark.rss.client.io.compression.codec": "SNAPPY",
-          "spark.rss.client.send.threadPool.keepalive": "300",
           "spark.rss.data.replica": "1",
           "spark.rss.data.replica.write": "1",
           "spark.rss.data.replica.read": "1",
+          "spark.rss.estimate.task.concurrency.enabled": "true",
+          "spark.rss.estimate.task.concurrency.dynamic.factor": "1.0",
+          "spark.rss.client.shuffle.data.distribution.type": "LOCAL_ORDER",
+          "spark.rss.client.send.threadPool.keepalive": "300",
 
-          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59"
+          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59",
+          "spark.kubernetes.node.selector.topology.kubernetes.io/zone": "us-east-1b"
 
       }},
       {
         "classification": "spark-log4j",
         "properties": {
-          "log4j.rootCategory":"DEBUG, console"
+          "log4j.rootCategory":"WARN, console"
         }
       }
     ],
