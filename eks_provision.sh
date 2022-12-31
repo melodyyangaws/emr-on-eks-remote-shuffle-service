@@ -98,6 +98,12 @@ iam:
     wellKnownPolicies:
       autoScaler: true
     roleName: eksctl-cluster-autoscaler-role
+  - metadata:
+      name: oss
+      namespace: $OSS_NAMESPACE
+      labels: {aws-usage: "application"}
+    attachPolicyARNs:
+    - arn:aws:iam::$ACCOUNTID:policy/$ROLE_NAME-policy  
 managedNodeGroups: 
   - name: rss-i3en
     availabilityZones: ["${AWS_REGION}a"] 
@@ -116,7 +122,7 @@ managedNodeGroups:
     desiredCapacity: 1
     maxSize: 20
     placement:
-      groupName: $EKSCLUSTER_NAME-bgroup
+      groupName: $EKSCLUSTER_NAME-agroup
     labels:
       app: rss
     tags:
@@ -136,28 +142,47 @@ managedNodeGroups:
     desiredCapacity: 1
     maxSize: 20
     placement:
-      groupName: $EKSCLUSTER_NAME-agroup
+      groupName: $EKSCLUSTER_NAME-bgroup
     labels:
       app: css
     tags:
       # required for cluster-autoscaler auto-discovery
       k8s.io/cluster-autoscaler/enabled: "true"
       k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"
-  - name: c59
-    availabilityZones: ["${AWS_REGION}a","${AWS_REGION}b"] 
+  - name: c59a
+    availabilityZones: ["${AWS_REGION}a"] 
     instanceType: c5.9xlarge
     preBootstrapCommands:
       - "sudo systemctl restart docker --no-block"
     volumeSize: 50
     volumeType: gp3
-    minSize: 2
-    desiredCapacity: 2
+    minSize: 1
+    desiredCapacity: 1
     maxSize: 50
+    placement:
+      groupName: $EKSCLUSTER_NAME-agroup
     labels:
       app: sparktest
     tags:
       k8s.io/cluster-autoscaler/enabled: "true"
       k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned" 
+  - name: c59b
+    availabilityZones: ["${AWS_REGION}b"] 
+    instanceType: c5.9xlarge
+    preBootstrapCommands:
+      - "sudo systemctl restart docker --no-block"
+    volumeSize: 50
+    volumeType: gp3
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 50
+    placement:
+      groupName: $EKSCLUSTER_NAME-bgroup
+    labels:
+      app: sparktest
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/$EKSCLUSTER_NAME: "owned"     
 # enable all of the control plane logs
 cloudWatch:
  clusterLogging:
@@ -193,7 +218,6 @@ echo "==============================================="
 echo "  Configure EKS Cluster ......"
 echo "==============================================="
 # Map the s3 bucket environment variable to EKS cluster
-kubectl create namespace $OSS_NAMESPACE
 kubectl create -n $OSS_NAMESPACE configmap special-config --from-literal=codeBucket=$S3TEST_BUCKET
 
 # Install k8s metrics server
@@ -227,6 +251,32 @@ EOF
 helm repo add autoscaler https://kubernetes.github.io/autoscaler
 helm install nodescaler autoscaler/cluster-autoscaler --namespace kube-system --values /tmp/autoscaler-config.yaml --debug
 
+# config k8s rbac access to service account 'oss'
+cat <<EOF | kubectl apply -f - -n $OSS_NAMESPACE
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: oss-role
+  namespace: $OSS_NAMESPACE
+rules:
+  - apiGroups: ["", "batch","extensions"]
+    resources: ["configmaps","serviceaccounts","events","pods","pods/exec","pods/log","pods/portforward","secrets","services"]
+    verbs: ["create","delete","get","list","patch","update","watch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: oss-rb
+  namespace: $OSS_NAMESPACE
+subjects:
+  - kind: ServiceAccount
+    name: oss
+    namespace: $OSS_NAMESPACE
+roleRef:
+  kind: Role
+  name: oss-role
+  apiGroup: rbac.authorization.k8s.io  
+EOF
 # echo "==========================================================================================="
 # echo "  Patch k8s user permission for PVC only if eksctl version is < 0.111.0 or EMR < 6.8 ......"
 # echo "==========================================================================================="

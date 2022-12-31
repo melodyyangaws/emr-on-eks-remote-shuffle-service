@@ -95,6 +95,8 @@ spec:
         app: rss-webhook
         service: rss-webhook
     spec:
+      nodeSelector:
+        app: css   
       serviceAccountName: rss-webhook
       containers:
         - name: rss-webhook

@@ -2,13 +2,8 @@
 # SPDX-FileCopyrightText: Copyright 2021 Amazon.com, Inc. or its affiliates.
 # SPDX-License-Identifier: MIT-0
 
-# "spark.dynamicAllocation.enabled": "true",
-# "spark.dynamicAllocation.shuffleTracking.enabled": "true",
-# "spark.dynamicAllocation.shuffleTracking.timeout": "1",
-# "spark.dynamicAllocation.maxExecutors": "55"
-
-export EMRCLUSTER_NAME=emr-on-eks-rss
-export AWS_REGION=us-east-1
+# export EMRCLUSTER_NAME=emr-on-eks-rss
+# export AWS_REGION=us-east-1
 export ACCOUNTID=$(aws sts get-caller-identity --query Account --output text)
 export VIRTUAL_CLUSTER_ID=$(aws emr-containers list-virtual-clusters --query "virtualClusters[?name == '$EMRCLUSTER_NAME' && state == 'RUNNING'].id" --output text)
 export EMR_ROLE_ARN=arn:aws:iam::$ACCOUNTID:role/$EMRCLUSTER_NAME-execution-role
@@ -39,8 +34,7 @@ aws emr-containers start-job-run \
           "spark.css.zookeeper.address": "zookeeper-0.zookeeper-headless.zk.svc.cluster.local:2181,zookeeper-1.zookeeper-headless.zk.svc.cluster.local:2181",
           "spark.shuffle.manager": "org.apache.spark.shuffle.css.CssShuffleManager",
 
-          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59",
-          "spark.kubernetes.node.selector.topology.kubernetes.io/zone": "us-east-1b"
+          "spark.kubernetes.node.selector.eks.amazonaws.com/nodegroup": "c59b"
       }},
       {
         "classification": "spark-log4j",

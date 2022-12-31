@@ -6,7 +6,7 @@ image:
   # repository: ghcr.io/datapunchorg/remoteshuffleservice
   # tag: k8s-spark-3.2
 nodeSelector:
-    app: rss
+  app: rss
 resources:
   requests:
     memory: "172G" #i3en.6xl

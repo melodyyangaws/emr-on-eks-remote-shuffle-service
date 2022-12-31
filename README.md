@@ -12,7 +12,7 @@ The high level design for Uber's Remote Shuffle Service (RSS) can be found [here
 * [3. Install Apache Uniffle (Tencent)](#1-install-uniffle-operator-on-eks)
 
 
-## Infra Provision
+## Infrastructure
 If you do not have your own environment to run Spark, run the command. Change the region if needed.
 ```
 export EKSCLUSTER_NAME=eks-rss
@@ -20,9 +20,9 @@ export AWS_REGION=us-east-1
 ./eks_provision.sh
 ```
 which provides a one-click experience to create an EMR on EKS environment and OSS Spark Operator on a common EKS cluster. The EKS cluster contains the following managed nodegroups which are located in a single AZ within the same [Cluster placment strategy](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html) to achieve the low-latency network performance for the intercommunication between apps and shuffle servers:
-- 1 - [`rss-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L104) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=rss` to host the RSS servers. Only 1 out of 2 SSD disks is mounted to these instances as RSS's rootdir limitation.
-- 2 - [`css-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L128) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=css` to host the CSS and Uniffle servers.
-- 2 - [`c59`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that scales c5.9xlarge instances from 1 to 50. They are labelled as `app=sparktest` to run both EMR on EKS and OSS Spark testings in parallel. The node group can also be used to run TPCDS source data generation job if needed.
+- 1 - [`rss-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L104) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=rss` to host the RSS servers. Only 1 out of 2 SSD disks is mounted to these instances for the RSS's rootdir limitation.
+- 2 - [`css-i3en`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/99e7b2efbbd25a72435cc00a8bed6e14e91f415b/eks_provision.sh#L128) that scales i3en.6xlarge instances from 1 to 20. They are labelled as `app=css` to host the CSS and Uniffle clusters.
+- 2 - [`c59a` & `c59b`](https://github.com/melodyyangaws/emr-on-eks-remote-shuffle-service/blob/e81ed02da9a470889dd806a7be6ed9f160510563/eks_provision.sh#L111) that can scale c5.9xlarge instances from 1 to 50 at AZ-a and AZ-b respectively. They are labelled as `app=sparktest` to run multiple EMR on EKS jobs or OSS Spark tests in parallel. Additionally, the node groups can be used to run TPCDS source data generation job if needed.
 
 ## Quick Start: Run rmeote shuffle server in EMR
 ```bash
@@ -190,7 +190,10 @@ export VERSION="0.7.0-snapshot"
 make REGISTRY=$ECR_URL docker-build docker-push -f Makefile
 ```
 #### Run Uniffle Operator in EKS 
-**TODO: a single-click deployment via helm chart**
+**TODO: a single-command deployment via helm chart**
+Replace docker image URLs in the definition files:`uniffle-webhook.yaml`, `uniffle-webhook.yaml`, `uniffle-operator.yaml`.
+Note: server's key configs are `xmxSize=0.75 X server pod memory`, `rss.server.buffer.capacity=0.6 X xmxSize` and  `rss.server.read.buffer.capacity=0.2 X xmxSize`
+
 ```bash
 # Create a new namespace for Apache Uniffle
 kubectl create namespace uniffle
@@ -201,7 +204,7 @@ kubectl apply -f example/uniffle-crd.yaml
 kubectl apply -f example/uniffle-webhook.yaml
 # Update docker image name and tag, then create controller
 kubectl apply -f example/uniffle-controller.yaml
-# Create config map
+# Config coordinator and server
 kubectl apply -f example/configmap.yaml 
 # Update docker image name and tag, then start server and coordinators
 kubectl apply -f example/uniffle-operator.yaml
@@ -233,7 +236,7 @@ docker push $ECR_URL/uniffle-spark-benchmark:emr6.6
 ### OPTIONAL: generate the TCP-DS source data
 The job will generate TPCDS source data at 3TB scale to your S3 bucket `s3://'$S3BUCKET'/BLOG_TPCDS-TEST-3T-partitioned/`. Alternatively, directly copy the source data from `s3://blogpost-sparkoneks-us-east-1/blog/BLOG_TPCDS-TEST-3T-partitioned` to your S3.
 ```bash
-kubectl apply -f examples/tpcds-data-generation.yaml
+kubectl apply -f examples/tpcds-data-gen.yaml
 ```
 
 ### Run EMR on EKS Spark benchmark test:
@@ -242,6 +245,8 @@ Update the docker image name to your ECR URL in the following file, then run:
 ```bash
 # go to the project root directory
 cd emr-on-eks-remote-shuffle-service
+export EMRCLUSTER_NAME=emr-on-eks-rss
+export AWS_REGION=us-east-1
 # run the performance test with Uber's RSS
 ./example/emr6.6-benchmark-rss.sh
 # Or Bytedance's CSS

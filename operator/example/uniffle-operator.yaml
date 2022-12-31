@@ -24,6 +24,8 @@ metadata:
 spec: 
   configMapName: rss-configuration
   coordinator:
+    nodeSelector:
+      app: css   
     image: 021732063925.dkr.ecr.us-east-1.amazonaws.com/uniffle-server:0.7.0-snapshot
     initContainerImage: "busybox:latest"
     rpcNodePort:
@@ -32,7 +34,7 @@ spec:
     httpNodePort:
       - 30002
       - 30012
-    xmxSize: "10G"
+    xmxSize: "50G"
     configDir: "/data/rssadmin/rss/conf"
     replicas: 1
     excludeNodesFilePath: "/data/rssadmin/rss/coo/exclude_nodes"
@@ -43,6 +45,9 @@ spec:
     hostPathMounts:
       /data/logs/rss/coordinator: /data/rssadmin/rss/logs 
   shuffleServer:
+    sync: true
+    upgradeStrategy:
+      type: "FullRestart"
     nodeSelector:
       app: css
     sync: true
@@ -51,7 +56,7 @@ spec:
     initContainerImage: "busybox:latest"
     upgradeStrategy:
       type: "FullRestart"
-    xmxSize: "10G"
+    xmxSize: "144G"
     configDir: "/data/rssadmin/rss/conf"
     securityContext:
       runAsUser: 999

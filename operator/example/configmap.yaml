@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+    # log4j.logger.io.grpc.netty.NettyServerHandler=ALL
+    # log4j.logger.io.grpc.netty.NettyClientHandler=ALL
     # rss.server.hdfs.base.path hdfs://localhost:9000
 ---
 kind: ConfigMap
@@ -23,20 +25,16 @@ metadata:
   namespace: uniffle
 data:
   coordinator.conf: |-
-    rss.coordinator.app.expired 1200000
+    rss.coordinator.app.expired 60000
     rss.coordinator.exclude.nodes.file.path /data/rssadmin/rss/coo
-    rss.coordinator.server.heartbeat.timeout 300000
-    rss.coordinator.shuffle.nodes.max 5
-    rss.coordinator.dynamicClientConf.enabled false
+    rss.coordinator.server.heartbeat.timeout 30000
     rss.jetty.http.port 19996
     rss.rpc.server.port 19997
     rss.coordinator.select.partition.strategy CONTINUOUS
   log4j.properties: |-
-    log4j.logger.io.grpc.netty.NettyServerHandler=ALL
-    log4j.logger.io.grpc.netty.NettyClientHandler=ALL
-    log4j.rootCategory=INFO, RollingAppender
+    log4j.rootCategory=WARN, RollingAppender
     log4j.appender.console=org.apache.log4j.ConsoleAppender
-    log4j.appender.console.Threshold=INFO
+    log4j.appender.console.Threshold=WARN
     log4j.appender.console.target=System.err
     log4j.appender.console.layout=org.apache.log4j.PatternLayout
     log4j.appender.console.layout.ConversionPattern=%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n
@@ -49,13 +47,13 @@ data:
   server.conf: |-
     rss.coordinator.quorum rss-coordinator-uniffle-rss-0:19997,rss-coordinator-uniffle-rss-1:19997
     rss.jetty.http.port 19996
-    rss.rpc.executor.size 500
+    rss.rpc.executor.size 2000
     rss.rpc.message.max.size 1073741824
     rss.rpc.server.port 19997
     rss.server.app.expired.withoutHeartbeat 120000
-    rss.server.buffer.capacity 60g
+    rss.server.buffer.capacity 87g
     rss.server.commit.timeout 600000
-    rss.server.disk.capacity 3g
+    rss.server.disk.capacity -1
     rss.server.event.size.threshold.l1 128m
     rss.server.event.size.threshold.l2 192m
     rss.server.event.size.threshold.l3 256m
@@ -63,8 +61,8 @@ data:
     rss.server.flush.thread.alive 6
     rss.server.flush.threadPool.size 12
     rss.server.hadoop.dfs.client.socket-timeout 15000
-    rss.server.hadoop.dfs.replication 2
-    rss.server.hdfs.base.path /rss1/rssdata,/rss2/rssdata
+    rss.server.hadoop.dfs.replication 1
+    rss.server.hdfs.base.path hdfs://rss1/rssdata,hdfs://rss2/rssdata
     rss.server.health.check.enable false
     rss.server.heartbeat.interval 10000
     rss.server.heartbeat.timeout 60000
@@ -72,7 +70,7 @@ data:
     rss.server.memory.shuffle.lowWaterMark.percentage 10.0
     rss.server.pending.event.timeoutSec 600
     rss.server.preAllocation.expired 120000
-    rss.server.read.buffer.capacity 5g
+    rss.server.read.buffer.capacity 29g
     rss.server.shuffle.expired.timeout.ms 120000
     rss.server.write.retry.max 2
     rss.storage.basePath /rss1/rssdata,/rss2/rssdata

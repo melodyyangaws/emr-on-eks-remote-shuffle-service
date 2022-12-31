@@ -82,6 +82,8 @@ spec:
       labels:
         app: rss-controller
     spec:
+      nodeSelector:
+        app: css    
       serviceAccountName: rss-controller
       containers:
         - name: rss-controller
