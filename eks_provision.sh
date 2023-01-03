@@ -260,7 +260,7 @@ metadata:
   namespace: $OSS_NAMESPACE
 rules:
   - apiGroups: ["", "batch","extensions"]
-    resources: ["configmaps","serviceaccounts","events","pods","pods/exec","pods/log","pods/portforward","secrets","services"]
+    resources: ["configmaps","serviceaccounts","events","pods","pods/exec","pods/log","pods/portforward","secrets","services","persistentvolumeclaims"]
     verbs: ["create","delete","get","list","patch","update","watch"]
 ---
 kind: RoleBinding

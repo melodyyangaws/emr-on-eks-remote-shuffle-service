@@ -258,21 +258,23 @@ kubectl get po -n emr
 kubectl logs DRIVER_POD_NAM -n emr spark-kubernetes-driver
 ```
 
-**NOTE**: in Uber's RSS benchmark test, keep the server string like `rss-%s` for the config `spark.shuffle.rss.serverSequence.connectionString`, This is intended because `RssShuffleManager` can use it to format the connection string dynamically:
+**NOTE**: in Uber's RSS benchmark test, keep the server string like `rss-%s` for the config `spark.shuffle.rss.serverSequence.connectionString`, This is intended because `RssShuffleManager` can use it to format the connection string dynamically. In the following example, our Spark job will connect to 3 RSS servers:
 ```bash
 "spark.shuffle.manager": "org.apache.spark.shuffle.RssShuffleManager",
 "spark.shuffle.rss.serviceRegistry.type": "serverSequence",
 "spark.shuffle.rss.serverSequence.connectionString": "rss-%s.rss.remote-shuffle-service.svc.cluster.local:9338",
 "spark.shuffle.rss.serverSequence.startIndex": "0",
-"spark.shuffle.rss.serverSequence.endIndex": "1",
-"spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+"spark.shuffle.rss.serverSequence.endIndex": "2",
 ```
 The setting`"spark.shuffle.rss.serviceRegistry.type": "serverSequence"` means the metadata will be stored in a cluster of standalone RSS servers.
 
 
 ### OPTIONAL: Run OSS Spark benchmark
-NOTE: some queries may not be able to complete, due to the limited resources alloated to run such a large scale test:
-Update the docker image name to your ECR URL, then run
+NOTE: some queries may not be able to complete, due to the limited resources alloated to run such a large scale test. Update the docker image to your image repository URL, then test the performance for different remote shuffle service options, For example:
 ```bash
-kubectl apply -f tpcds-benchmark.yaml
+kubectl apply -f oss-benchmark-uniffle.yaml
+# check job progress
+kubectl get pod -n oss
+# check application logs
+kubectl logs uniffle-benchmark-driver -n oss
 ```

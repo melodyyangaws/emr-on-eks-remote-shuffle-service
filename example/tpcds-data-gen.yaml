@@ -33,7 +33,7 @@ spec:
   sparkConf:
     "spark.network.timeout": "2000s"
     "spark.executor.heartbeatInterval": "300s"
-    "spark.kubernetes.memoryOverheadFactor": "0.3"
+    "spark.kubernetes.memoryOverheadFactor": "0.4"
     "spark.sql.files.maxRecordsPerFile": "30000000"
     "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
 
